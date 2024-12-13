@@ -19,7 +19,7 @@ services:
       context: ./python
       dockerfile: ./Dockerfile
     ports:
-      - "5000:${PORT_PYTHON_SERVER}"
+      - "${PORT_PYTHON_SERVER}:5000"
     networks:
       - eggs-network
     restart: always
