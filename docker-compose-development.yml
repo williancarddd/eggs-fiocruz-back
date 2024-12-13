@@ -26,6 +26,10 @@ services:
 
   database-eggs-count:
     image: postgres:15-alpine
+    expose:
+      - "5432"
+    ports:
+      - "${DATABASE_PORT}:${DATABASE_PORT}"
     volumes:
       - fiocruz-eggs-count:/var/lib/postgresql/data
     restart: always
