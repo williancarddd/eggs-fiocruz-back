@@ -1,4 +1,7 @@
 FROM node:20-alpine
+# install openssl
+
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
