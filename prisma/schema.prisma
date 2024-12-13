@@ -1,0 +1,74 @@
+generator client {
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+  previewFeatures = ["omitApi"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  COLLECTOR
+}
+
+enum ProcessStatus {
+  PENDING
+  FAILED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model User {
+  id       String @id @default(uuid())
+  name     String
+  email    String @unique()
+  password String
+  type     Role   @default(COLLECTOR)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+
+  processes    Process[]
+  loginHistory loginHistory[]
+}
+
+model loginHistory {
+  id      String   @id @default(uuid())
+  userId  String
+  loginAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Process {
+  id           String  @id @default(uuid())
+  userId       String
+  description  String?
+  resultPath   String?
+  expectedEggs Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  results ProcessExecutions[]
+}
+
+model ProcessExecutions {
+  id        String        @id @default(uuid())
+  processId String?
+  eggsCount Int?
+  algorithm String?
+  status    ProcessStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+
+  Process Process? @relation(fields: [processId], references: [id], onDelete: Cascade)
+}
