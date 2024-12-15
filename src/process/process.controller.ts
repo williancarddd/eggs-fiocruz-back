@@ -173,7 +173,7 @@ export class ProcessController {
   @ApiOperation({ summary: 'List all processes', operationId: 'findAllProcesses' })
   @ApiPaginatedResponse(ProcessDto)
   @ApiQuery({ name: 'page', type: 'number', required: false })
-  @ApiQuery({ name: 'pageSize', type: 'number', required: false })
+  @ApiQuery({ name: 'perPage', type: 'number', required: false })
   @ApiQuery({ name: 'userId', type: 'string', required: false })
   @ApiBadRequestResponse({ description: 'Parâmetros de paginação inválidos' })
   findAll(@Query() query: FindAllQueryDto) {
