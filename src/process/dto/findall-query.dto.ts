@@ -7,7 +7,7 @@ export const FindAllQuerySchema = z.object({
     .number()
     .default(1),
 
-  perPage: z
+  pageSize: z
     .coerce
     .number()
     .default(10)
