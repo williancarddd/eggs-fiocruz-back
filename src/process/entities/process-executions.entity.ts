@@ -8,6 +8,8 @@ export const ProcessExecutionsSchema = z.object({
   processId: z.string().uuid({ message: "Invalid Process ID format" }),
   eggsCount: z.number().int({ message: "Eggs Count must be an integer" }).describe('Eggs Count'),
   algorithm: z.nativeEnum(Algorithms).default(Algorithms.DEFAULT).describe('Algorithm'),
+  initialTimestamp: z.string().datetime().optional().describe('Initial Timestamp'),
+  finalTimestamp: z.string().datetime().optional().describe('Final Timestamp'),
   status: z.nativeEnum(ProcessStatus).describe('Status'),
   createdAt: z.string().datetime().optional().describe('Date of Creation'),
   updatedAt: z.string().datetime().optional().describe('Date of Update'),

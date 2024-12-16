@@ -61,11 +61,13 @@ model Process {
 }
 
 model ProcessExecutions {
-  id        String        @id @default(uuid())
-  processId String?
-  eggsCount Int?
-  algorithm String?
-  status    ProcessStatus @default(PENDING)
+  id               String        @id @default(uuid())
+  processId        String?
+  eggsCount        Int?
+  algorithm        String?
+  status           ProcessStatus @default(PENDING)
+  initialTimestamp DateTime?
+  finalTimestamp   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt()

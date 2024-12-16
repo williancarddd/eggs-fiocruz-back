@@ -119,6 +119,8 @@ export class ProcessController {
       await this.processExecution.updateExecution(latestExecutionId, {
         status: 'COMPLETED',
         eggsCount: eggsCountResponse!.total_eggs,
+        initialTimestamp: new Date(eggsCountResponse!.initial_time * 1000),
+        finalTimestamp: new Date(eggsCountResponse!.final_time * 1000),
       });
     }
 
@@ -161,6 +163,12 @@ export class ProcessController {
 
     // Save the process execution in the database
     const processExecution = await this.processExecution.createExecution(parsedCreateProcessExecutionDto);
+    await this.processExecution.updateExecution(processExecution.id, {
+      status: 'COMPLETED',
+      eggsCount: eggsCountResponse!.total_eggs,
+      initialTimestamp: new Date(eggsCountResponse!.initial_time * 1000),
+      finalTimestamp: new Date(eggsCountResponse!.final_time * 1000),
+    });
     const updatedProcess = await this.processService.findOne(process.id, 1);
     return {
       process: updatedProcess,
