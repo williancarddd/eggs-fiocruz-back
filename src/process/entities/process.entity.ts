@@ -16,7 +16,7 @@ export const ProcessSchema = z.object({
 });
 
 export class ProcessDto extends createZodDto(
-  ProcessSchema.omit({ user: true, results: true }).extend({
+  ProcessSchema.omit({ results: true }).extend({
     results: ProcessExecutionsSchema.omit({
       Process: true,
     }).array().optional().describe('Results'),

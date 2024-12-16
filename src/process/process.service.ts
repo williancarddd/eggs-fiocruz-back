@@ -55,6 +55,11 @@ export class ProcessService {
         include: {
           results: {
             orderBy: { createdAt: 'desc' },
+          },
+          user: {
+            omit: {
+              password: true,
+            }
           }
         },
       });
@@ -67,6 +72,11 @@ export class ProcessService {
         results: {
           orderBy: { createdAt: 'desc' },
           take,
+        },
+        user: {
+          omit: {
+            password: true,
+          }
         }
       },
     });

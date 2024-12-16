@@ -38,6 +38,7 @@ export class EggsCountService {
       );
       return response.data;
     } catch (error) {
+      console.log(error);
       if (error instanceof AxiosError) {
         throw new HttpException(error.response?.data, error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR);
       }
