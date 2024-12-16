@@ -139,6 +139,7 @@ export class ProcessController {
   @Post("/process-execution")
   @ApiOperation({ summary: 'Re-calculate a process', operationId: 'createProcessExecution' })
   @ApiBody({ type: CreateProcessExecutionDto })
+  @ApiOkResponse({ type: ProcessDto })
   @ApiBadRequestResponse({ description: 'Invalid or missing data' })
   async createProcessExecution(
     @Body() createProcessExecutionDto: CreateProcessExecutionDto,
