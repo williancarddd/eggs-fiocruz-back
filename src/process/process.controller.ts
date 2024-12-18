@@ -26,9 +26,8 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { ProcessService } from './process.service';
-import { CreateProcessDto, CreateProcessSchema } from './dto/create-process.dto';
+import { CreateProcessSchema } from './dto/create-process.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
 import { ProcessExecutionService } from './process-execution.service';
 import { SupabaseService } from 'src/common/databases/supabase/supabase.service';
 import { Readable } from 'stream';
@@ -92,19 +91,7 @@ export class ProcessController {
     // Validate using Zod
     const parsedCreateProcessDto = CreateProcessSchema.parse({ ...createProcessDto, resultPath: '' });
 
-    // Upload the image to Supabase
-    const uploadedImage = await this.supabaseService.uploadImage(
-      file,
-      parsedCreateProcessDto.userId,
-      'process-images',
-    );
 
-    if (!uploadedImage || !uploadedImage.publicUrl) {
-      throw new HttpException('Failed to upload image to Supabase', HttpStatus.BAD_GATEWAY);
-    }
-
-    // Add the uploaded image path to the parsed DTO
-    parsedCreateProcessDto.resultPath = uploadedImage.publicUrl;
 
     // Save the process and associated execution in the database
     const process = await this.processService.createProcess(parsedCreateProcessDto);
@@ -112,6 +99,19 @@ export class ProcessController {
     // Analyze the uploaded image for egg count
     const imageStream = Readable.from(file.buffer);
     const eggsCountResponse = await this.eggsCountService.create({ image: imageStream, algorithm: parsedCreateProcessDto.processExecution.algorithm });
+
+    // Upload the image to Supabase
+    const uploadedImage = await this.supabaseService.uploadImage(
+      file,
+      process.userId,
+      process.id,
+    );
+
+    if (!uploadedImage || !uploadedImage.publicUrl) {
+      throw new HttpException('Failed to upload image to Supabase', HttpStatus.BAD_GATEWAY);
+    }
+
+    await this.processService.updateProcess(process.id, { resultPath: uploadedImage.publicUrl });
 
     // Update the process execution with the results
     const latestExecutionId = process.results[0]?.id; // Assuming the first result is the latest
