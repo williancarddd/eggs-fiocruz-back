@@ -1,5 +1,5 @@
 # Use uma imagem base do Python com Slim para reduzir tamanho
-FROM python:3.9-alpine
+FROM python:3.9-slim
 
 # Instala dependências do sistema para o OpenCV e Ultralytics
 RUN apt-get update && apt-get install -y --no-install-recommends \
