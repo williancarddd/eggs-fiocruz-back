@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
-import { ProcessExecutionsSchema } from '../entities/process-executions.entity';
 import { Algorithms } from 'src/utils/algorithms';
 
 extendZodWithOpenApi(z); // Extends Zod for OpenAPI compatibility
