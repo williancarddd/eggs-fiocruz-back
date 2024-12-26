@@ -25,7 +25,7 @@ def process_image():
         result = runner.execute()
 
         return jsonify({
-            "total_objects": result["total_objects"],
+            "total_eggs": result["total_objects"],
             "squares": result["processed_squares"],
             "final_image": result["final_image_base64"],
             "initial_time": start_time,
