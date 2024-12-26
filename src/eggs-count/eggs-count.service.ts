@@ -27,7 +27,8 @@ export class EggsCountService {
 
     // Adiciona o arquivo ao FormData
     form.append('file', imageStream, 'imagem.jpg');
-
+    form.append('algorithm', createEggsCountDto.algorithm);
+    
     try {
       const response = await firstValueFrom(
         this.httpService.post<EggsCountResponseAIType>(process.env.EGGS_SERVER as string, form, {
