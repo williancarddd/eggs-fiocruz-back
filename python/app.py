@@ -15,13 +15,8 @@ def process_image():
         if file.mimetype not in ['image/jpeg', 'image/png', 'image/jpg']:
             return jsonify({"error": "Formato de imagem não suportado. Envie um arquivo JPG, JPEG ou PNG."}), 400
 
-        npimg = np.frombuffer(contents, np.uint8)
-        image = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
-        if image is None:
-            return jsonify({"error": "Formato de imagem inválido"}), 422
-
-        runner = AlgorithmRunner(image, algorithm)
+        runner = AlgorithmRunner(contents, algorithm)
         result = runner.execute()
 
         return jsonify({
