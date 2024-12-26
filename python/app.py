@@ -9,7 +9,7 @@ def process_image():
     try:
         start_time = time.time()
         file = request.files['file']
-        algorithm = request.form.get('algorithm', 'blind-square-1')
+        algorithm = request.form.get('algorithm')
         contents = file.read()
 
         if file.mimetype not in ['image/jpeg', 'image/png', 'image/jpg']:
