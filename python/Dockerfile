@@ -1,18 +1,32 @@
-# Use uma imagem base oficial do Python
+# Use uma imagem base do Python com Slim para reduzir tamanho
 FROM python:3.9-slim
 
-# Defina o diretório de trabalho
+# Instala dependências do sistema para o OpenCV e Ultralytics
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgl1 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Define o diretório de trabalho
 WORKDIR /app
 
-# Copie o arquivo requirements.txt e instale as dependências
+# Copia o arquivo requirements.txt para o contêiner
 COPY requirements.txt .
+
+# Instala dependências do Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copie o código da aplicação para o contêiner
+# Copia o código da aplicação para o contêiner
 COPY . .
 
-
+# Define variáveis de ambiente para melhorar o desempenho
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
 # Comando para rodar a aplicação com gunicorn
-# w: workers (número de processos) e b: bind (endereço e porta)
 CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "--timeout", "120", "--threads", "4", "--worker-connections", "1000", "app:app"]
