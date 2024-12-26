@@ -43,4 +43,4 @@ class DeepBlindSquareAlgorithm(BaseAlgorithm):
 
         counter.count(np.array(cv2.cvtColor(self.square, cv2.COLOR_BGR2RGB)))
 
-        return len(counter.boxes), self.square
+        return len(counter.boxes), counter
