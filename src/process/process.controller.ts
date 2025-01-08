@@ -97,7 +97,6 @@ export class ProcessController {
       
       console.log('imageStream', parsedCreateProcessDto);
       // Analyze the uploaded image for egg count
-      const imageStream = Readable.from(file.buffer);
       
       const eggsCountResponse = await this.eggsCountService.create({
         image: file.buffer,

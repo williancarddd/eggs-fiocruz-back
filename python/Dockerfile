@@ -29,4 +29,4 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 # Comando para rodar a aplicação com gunicorn
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "--timeout", "520", "--threads", "4", "--worker-connections", "1000", "app:app"]
+CMD ["gunicorn", "-w", "3", "-b", "0.0.0.0:5000", "--timeout", "300", "--threads", "2", "app:app"]
