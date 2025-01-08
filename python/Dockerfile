@@ -24,9 +24,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia o código da aplicação para o contêiner
 COPY . .
 
-# Define variáveis de ambiente para melhorar o desempenho
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+
 
 # Comando para rodar a aplicação com gunicorn
-CMD ["gunicorn", "-w", "3", "-b", "0.0.0.0:5000",  "--threads", "2", "app:app"]
+CMD ["gunicorn",  "-b", "0.0.0.0:5000",   "app:app"]

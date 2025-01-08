@@ -21,8 +21,7 @@ export class SupabaseService {
       .from(
         'eggs-palet-images'
       )
-      .upload(filePath, file.buffer, {
-        cacheControl: '3600',
+      .upload(filePath, file.buffer, { 
         upsert: true,
         contentType: file.mimetype,
       });
