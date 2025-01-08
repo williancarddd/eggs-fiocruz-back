@@ -103,11 +103,15 @@ export class ProcessController {
         algorithm: processExecution.algorithm,
       });
 
+      console.log('etapa eggsCountResponse');
+
       // If image analysis is successful, proceed with process creation
       const process = await this.processService.createProcess({
         ...parsedCreateProcessDto,
         processExecution,
       });
+      
+      console.log('etapa process create');
 
       // Upload the image to Supabase
       const uploadedImage = await this.supabaseService.uploadImage(
@@ -116,6 +120,8 @@ export class ProcessController {
         process.id,
       );
 
+      console.log('etapa upload  image');
+      
       if (!uploadedImage || !uploadedImage.publicUrl) {
         throw new HttpException(
           'Failed to upload image to Supabase',
