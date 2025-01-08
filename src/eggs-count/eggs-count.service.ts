@@ -28,7 +28,7 @@ export class EggsCountService {
     // Adiciona o arquivo ao FormData
     form.append('file', imageStream, 'imagem.jpg');
     form.append('algorithm', createEggsCountDto.algorithm);
-    
+
     try {
       const response = await firstValueFrom(
         this.httpService.post<EggsCountResponseAIType>(process.env.EGGS_SERVER as string, form, {
@@ -39,7 +39,10 @@ export class EggsCountService {
       );
       return response.data;
     } catch (error) {
-      console.log(error);
+      // console message error
+
+      console.log('error in eggs-count.service.ts', error);
+
       if (error instanceof AxiosError) {
         throw new HttpException(error.response?.data, error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR);
       }

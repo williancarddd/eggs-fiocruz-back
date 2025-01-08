@@ -81,56 +81,73 @@ export class ProcessController {
       throw new BadRequestException('File is required');
     }
 
-    createProcessDto.processExecution = {
-      algorithm: createProcessDto.algorithm,
-    };
-
+    // Prepare process execution data
+    const processExecution = { algorithm: createProcessDto.algorithm };
     delete createProcessDto.algorithm;
 
-
-    // Validate using Zod
-    const parsedCreateProcessDto = CreateProcessSchema.parse({ ...createProcessDto, resultPath: '' });
-
-
-
-    // Save the process and associated execution in the database
-    const process = await this.processService.createProcess(parsedCreateProcessDto);
-
-    // Analyze the uploaded image for egg count
-    const imageStream = Readable.from(file.buffer);
-    const eggsCountResponse = await this.eggsCountService.create({ image: imageStream, algorithm: parsedCreateProcessDto.processExecution.algorithm });
-
-    // Upload the image to Supabase
-    const uploadedImage = await this.supabaseService.uploadImage(
-      file,
-      process.userId,
-      process.id,
-    );
-
-    if (!uploadedImage || !uploadedImage.publicUrl) {
-      throw new HttpException('Failed to upload image to Supabase', HttpStatus.BAD_GATEWAY);
-    }
-
-    await this.processService.updateProcess(process.id, { resultPath: uploadedImage.publicUrl });
-
-    // Update the process execution with the results
-    const latestExecutionId = process.results[0]?.id; // Assuming the first result is the latest
-    if (latestExecutionId) {
-      await this.processExecution.updateExecution(latestExecutionId, {
-        status: 'COMPLETED',
-        eggsCount: eggsCountResponse!.total_eggs,
-        initialTimestamp: new Date(eggsCountResponse!.initial_time * 1000),
-        finalTimestamp: new Date(eggsCountResponse!.final_time * 1000),
+    try {
+      // Validate input data using Zod
+      const parsedCreateProcessDto = CreateProcessSchema.parse({
+        ...createProcessDto,
+        resultPath: '',
       });
+
+      // Analyze the uploaded image for egg count
+      const imageStream = Readable.from(file.buffer);
+      const eggsCountResponse = await this.eggsCountService.create({
+        image: imageStream,
+        algorithm: processExecution.algorithm,
+      });
+
+      // If image analysis is successful, proceed with process creation
+      const process = await this.processService.createProcess({
+        ...parsedCreateProcessDto,
+        processExecution,
+      });
+
+      // Upload the image to Supabase
+      const uploadedImage = await this.supabaseService.uploadImage(
+        file,
+        process.userId,
+        process.id,
+      );
+
+      if (!uploadedImage || !uploadedImage.publicUrl) {
+        throw new HttpException(
+          'Failed to upload image to Supabase',
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
+
+      await this.processService.updateProcess(process.id, {
+        resultPath: uploadedImage.publicUrl,
+      });
+
+      // Update the process execution with results
+      const latestExecutionId = process.results[0]?.id; // Assuming the first result is the latest
+      if (latestExecutionId) {
+        await this.processExecution.updateExecution(latestExecutionId, {
+          status: 'COMPLETED',
+          eggsCount: eggsCountResponse!.total_eggs,
+          initialTimestamp: new Date(eggsCountResponse!.initial_time * 1000),
+          finalTimestamp: new Date(eggsCountResponse!.final_time * 1000),
+        });
+      }
+
+      // Retrieve the process with its updated executions
+      const updatedProcess = await this.processService.findOne(process.id, 1);
+
+      return {
+        process: updatedProcess,
+        eggsCountResponseAI: eggsCountResponse,
+      };
+    } catch (error) {
+      // Handle any errors during the image analysis or process creation
+      throw new HttpException(
+        `Failed to create process: ${error}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
-
-    // Retrieve the process with its updated executions
-    const updatedProcess = await this.processService.findOne(process.id, 1);
-
-    return {
-      process: updatedProcess,
-      eggsCountResponseAI: eggsCountResponse,
-    };
 
   }
 
