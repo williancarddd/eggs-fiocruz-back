@@ -11,7 +11,7 @@ export const CreateProcessSchema = z.object({
   resultPath: z.string().optional().describe('Path to the result file'),
   expectedEggs: z.string().transform((v) => parseInt(v)).describe('Expected egg count'),
   processExecution: z.object({
-    algorithm: z.nativeEnum(Algorithms).default(Algorithms.DEFAULT).describe('Algorithm'),
+    algorithm: z.nativeEnum(Algorithms).default(Algorithms.BLIND_SQUARE_1).describe('Algorithm'),
   }),
 });
 

@@ -83,19 +83,24 @@ export class ProcessController {
 
     // Prepare process execution data
     const processExecution = { algorithm: createProcessDto.algorithm };
+    createProcessDto.processExecution = processExecution;
+
     delete createProcessDto.algorithm;
+    
+    const parsedCreateProcessDto = CreateProcessSchema.parse({
+      ...createProcessDto,
+      resultPath: '',
+    });
 
     try {
       // Validate input data using Zod
-      const parsedCreateProcessDto = CreateProcessSchema.parse({
-        ...createProcessDto,
-        resultPath: '',
-      });
-
+      
+      console.log('imageStream', parsedCreateProcessDto);
       // Analyze the uploaded image for egg count
       const imageStream = Readable.from(file.buffer);
+      
       const eggsCountResponse = await this.eggsCountService.create({
-        image: imageStream,
+        image: file.buffer,
         algorithm: processExecution.algorithm,
       });
 
