@@ -7,7 +7,7 @@ services:
       - "${PORT_APP}:${PORT_APP}"
     depends_on:
       - database-eggs-count
-      - python_server
+  
     links:
       - "database-eggs-count:${HOST}"
     networks:
