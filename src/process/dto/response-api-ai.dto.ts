@@ -31,10 +31,14 @@ export type EggsCountResponseAIType = z.infer<typeof EggsCountResponseAISchema>;
 const CreateProcessWithProcessExecutionSchema = z.object({
   process: ProcessSchema.omit({
     user: true,
-  }).extend({
-    results: ProcessExecutionsSchema.omit({ Process: true }).array(),
+    processExecution: true,
   }),
-  eggsCountResponseAI: EggsCountResponseAISchema,
+  processExecution: ProcessExecutionsSchema.omit({
+    process: true,
+    metadata: true,
+    Process: true,
+  }),
+  metadata: EggsCountResponseAISchema,
 });
 
-export class CreateProcessWithProcessExecutionDto extends createZodDto(CreateProcessWithProcessExecutionSchema) {}
+export class CreateProcessWithProcessExecutionDto extends createZodDto(CreateProcessWithProcessExecutionSchema) { }

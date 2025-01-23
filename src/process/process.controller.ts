@@ -34,6 +34,7 @@ import { ApiPaginatedResponse } from 'src/common/decorators/api-paginated-respon
 import { Algorithms } from 'src/utils/algorithms';
 import { ProcessDto } from './dto/process.dto';
 import { v4 as uuidv4 } from 'uuid';
+import { CreateProcessWithProcessExecutionDto } from './dto/response-api-ai.dto';
 
 @ApiTags('process')
 @Controller('fiocruz/process')
@@ -65,6 +66,7 @@ export class ProcessController {
   })
   @UseInterceptors(FileInterceptor('image'))
   @ApiCreatedResponse({
+    type: CreateProcessWithProcessExecutionDto,
     description: 'Process created successfully',
   })
   @ApiBadRequestResponse({ description: 'Invalid or missing data' })
@@ -77,7 +79,7 @@ export class ProcessController {
       expectedEggs: number;
     },
     @UploadedFile() file: Express.Multer.File,
-  ) {
+  ): Promise<CreateProcessWithProcessExecutionDto> {
     if (!file) {
       throw new BadRequestException('File is required');
     }
@@ -109,7 +111,7 @@ export class ProcessController {
     }
 
     // If image analysis is successful, proceed with process creation
-    await this.processService.createProcess(
+    const createdProcess = await this.processService.createProcess(
       {
         id: processId,
         description: 'Podem ser submetidas várias execuções para mesma imagem nesse processo',
@@ -135,9 +137,36 @@ export class ProcessController {
       finalTimestamp: new Date(eggsCountResponse!.final_time * 1000).toISOString(),
     });
 
+    // @ts-ignore
+    delete createdProcess.processExecution;
 
-
-    return updatedProcessExecution;
+    return {
+      process: {
+        description: createdProcess.process.description || '',
+        id: createdProcess.process.id,
+        userId: createdProcess.process.userId,
+        createdAt: new Date(createdProcess.process.createdAt).toISOString(),
+        updatedAt: new Date(createdProcess.process.updatedAt).toISOString(),
+      },
+      processExecution: {
+        description: updatedProcessExecution.description || '',
+        id: updatedProcessExecution.id,
+        processId: updatedProcessExecution.processId,
+        resultPath: updatedProcessExecution.resultPath,
+        status: updatedProcessExecution.status,
+        eggsCount: updatedProcessExecution.eggsCount,
+        initialTimestamp: updatedProcessExecution.initialTimestamp,
+        finalTimestamp: updatedProcessExecution.finalTimestamp,
+      },
+      metadata: {
+        total_objects: eggsCountResponse!.total_objects,
+        processed_squares: eggsCountResponse!.processed_squares,
+        image_dimensions: eggsCountResponse!.image_dimensions,
+        used_square_size: eggsCountResponse!.used_square_size,
+        initial_time: eggsCountResponse!.initial_time,
+        final_time: eggsCountResponse!.final_time,
+      }
+    };
 
 
   }
