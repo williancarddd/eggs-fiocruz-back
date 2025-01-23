@@ -1,60 +1,69 @@
 import numpy as np
 
 class ImageProcessor:
-    def __init__(self, image, square_size=512):
+    def __init__(self, image, square_processor, square_size=512):
+        """
+        Inicializa a classe ImageProcessor.
+
+        :param image: Imagem a ser processada (array numpy).
+        :param square_processor: Função que processa cada quadrado e retorna (objects_count, counted_image).
+        :param square_size: Tamanho dos quadrados (janelas deslizantes).
+        """
         self.image = image
+        self.square_processor = square_processor
         self.square_size = square_size
-        self.img_height, self.img_width = image.shape[:2]  # Suporte para imagens com qualquer número de canais
-        self.num_channels = image.shape[2] if image.ndim == 3 else 1
+        
+        # get self.img_height, self.img_width 
+        # check if is 3 or 2 channels
+        if len(self.image.shape) == 3:
+            self.img_height, self.img_width, _ = self.image.shape
+        else:
+            self.img_height, self.img_width = self.image.shape
 
-    def resize_to_fit_grid(self, image):
+    def process_image(self):
         """
-        Redimensiona a imagem para que sua altura e largura sejam múltiplos do square_size.
-        Preenche com zeros (cor preta ou intensidade mínima) se necessário.
-        Funciona para imagens com 1, 2 ou 3 canais.
-        """
-        img_height, img_width = image.shape[:2]
-        new_height = img_height + (self.square_size - img_height % self.square_size) % self.square_size
-        new_width = img_width + (self.square_size - img_width % self.square_size) % self.square_size
+        Percorre a imagem usando janelas deslizantes e retorna um vetor com as informações de coordenadas
+        e a contagem de objetos detectados em cada quadrado.
 
-        if image.ndim == 2:  # Grayscale
-            resized_image = np.zeros((new_height, new_width), dtype=image.dtype)
-            resized_image[:img_height, :img_width] = image
-        else:  # Multi-canal
-            resized_image = np.zeros((new_height, new_width, self.num_channels), dtype=image.dtype)
-            resized_image[:img_height, :img_width, :] = image
-
-        return resized_image
-
-    def divide_image(self):
+        :return: Lista de dicionários com as informações de cada quadrado processado.
         """
-        Divide a imagem em quadrados de tamanho square_size.
-        Funciona para imagens com qualquer número de canais.
-        """
-        squares = []
-        for y in range(0, self.img_height, self.square_size):
-            for x in range(0, self.img_width, self.square_size):
+        
+        img_height, img_width = self.img_height, self.img_width
+        processed_squares = []
+        total_objects = 0
+
+        # Calcula os novos tamanhos com preenchimento
+        new_height = int(np.ceil(img_height / self.square_size) * self.square_size)
+        new_width = int(np.ceil(img_width / self.square_size) * self.square_size)
+        
+        # Preenche a imagem com zeros
+        if len(self.image.shape) == 3:  # Imagem com 3 canais (RGB)
+            self.image = np.pad(
+                self.image,
+                ((0, new_height - img_height), (0, new_width - img_width), (0, 0)),
+                mode='constant'
+            )
+        else:  # Imagem com 1 canal (grayscale)
+            self.image = np.pad(
+                self.image,
+                ((0, new_height - img_height), (0, new_width - img_width)),
+                mode='constant'
+            )
+
+        # Percorre a imagem com janelas deslizantes
+        for y in range(0, new_height, self.square_size):
+            for x in range(0, new_width, self.square_size):
+                # Extrai a janela
                 square = self.image[y:y + self.square_size, x:x + self.square_size]
-                squares.append((x, y, square))
-        return squares
+                # Processa a janela usando a função fornecida
+                objects_count, counted_image, points = self.square_processor(square)
+                total_objects += objects_count
 
-    def reconstruct_image(self, processed_squares):
-        """
-        Reconstrói a imagem a partir dos quadrados processados.
-        Funciona para imagens com qualquer número de canais.
-        """
-        if self.num_channels == 1:  # Grayscale
-            reconstructed_image = np.zeros((self.img_height, self.img_width), dtype=self.image.dtype)
-        else:  # Multi-canal
-            reconstructed_image = np.zeros((self.img_height, self.img_width, self.num_channels), dtype=self.image.dtype)
+                # Adiciona o resultado ao vetor
+                processed_squares.append({
+                    "coordinates": {"x": x, "y": y},
+                    "points": points,
+                    "objects_detected": objects_count
+                })
 
-        count = 0
-        for y in range(0, self.img_height, self.square_size):
-            for x in range(0, self.img_width, self.square_size):
-                square = processed_squares[count]
-                if self.num_channels == 1:  # Grayscale
-                    reconstructed_image[y:y + self.square_size, x:x + self.square_size] = square
-                else:  # Multi-canal
-                    reconstructed_image[y:y + self.square_size, x:x + self.square_size, :] = square
-                count += 1
-        return reconstructed_image
+        return processed_squares, total_objects

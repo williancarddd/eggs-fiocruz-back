@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 
-class BlindSquareProcessorAlgorithm(BaseAlgorithm):
+class TraditionalAlgorithm(BaseAlgorithm):
 
     def adjust_exposure(self, image):
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -63,7 +63,8 @@ class BlindSquareProcessorAlgorithm(BaseAlgorithm):
         contour_img = square.copy()
         cv2.drawContours(contour_img, filtered_contours, -1, (0, 255, 0), 2)  # Desenhar em verde
         
-        return len(filtered_contours), contour_img  # Retornar o número de ovos e a imagem com contornos
+        
+        return len(filtered_contours), contour_img, list(map(cv2.boundingRect, filtered_contours))
 
     def process_square(self, square):
         """Processa um quadrado para melhorar a detecção de objetos."""

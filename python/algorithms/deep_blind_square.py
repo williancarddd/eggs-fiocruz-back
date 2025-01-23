@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 
-class DeepBlindSquareAlgorithm(BaseAlgorithm):
+class DeepAlgorithmV1(BaseAlgorithm):
 
     def adjust_exposure(self, square):
         """INCREASE INTENSITY"""
@@ -25,11 +25,16 @@ class DeepBlindSquareAlgorithm(BaseAlgorithm):
         aje = self.adjust_exposure(square)
         clahe = self.clahe(aje)
 
-        model_path = './best.pt'
+        model_path = './algorithms/models_ai/olde-model.pt'
         region = [(0, 0), (512, 0), (512, 512), (0, 512)]
         counter = solutions.ObjectCounter(
             model=model_path, region=region, show=False)
 
         image_contend = counter.count(np.array(cv2.cvtColor(clahe, cv2.COLOR_GRAY2RGB)))
-      
-        return len(counter.boxes), image_contend
+        
+        # convert tensor to numpy counter boxes
+        boxes_list = []
+        if len(counter.boxes) > 0:
+            boxes_list = counter.boxes.tolist()
+
+        return len(counter.boxes), image_contend, boxes_list
