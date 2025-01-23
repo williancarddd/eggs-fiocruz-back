@@ -1,11 +1,11 @@
-import { Injectable, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/common/databases/prisma-module/prisma.service';
-import { CreateProcessDto } from './dto/create-process.dto';
-import { UpdateProcessDto } from './dto/update-process.dto';
+
 import { createPaginator } from 'prisma-pagination';
 import { Prisma } from '@prisma/client';
 import { FindAllQueryDto, FindAllQuerySchema } from './dto/findall-query.dto';
-import { ProcessDto } from './entities/process.entity';
+import { CreateProcessDto, ProcessDto, UpdateProcessDto } from './dto/process.dto';
+
 
 @Injectable()
 export class ProcessService {
@@ -13,23 +13,61 @@ export class ProcessService {
 
   async createProcess(createProcessDto: CreateProcessDto) {
     const { processExecution, ...processData } = createProcessDto;
+    const findPRocess = await this.prisma.process.findUnique({ where: { id: createProcessDto.id } });
 
-    const process = await this.prisma.process.create({
+    /*
+    * If the process has an ID, it means that the process already exists and we are adding a new execution to it.
+    */
+
+    if (findPRocess) {
+      const createProcessExecution = await this.prisma.processExecutions.create({
+        data: {
+          id: processExecution.id,
+          expectedEggs: processExecution.expectedEggs,
+          algorithm: processExecution.algorithm,
+          processId: findPRocess.id,
+          description: processExecution.description,
+        },
+      });
+
+      return {
+        process: findPRocess,
+        processExecution: createProcessExecution,
+      };
+    }
+
+
+
+
+
+
+    const createdPRocess = await this.prisma.process.create({
       data: {
-        ...processData,
-        results: {
-          create: { ...processExecution, status: 'IN_PROGRESS' },
+        description: processData.description,
+        userId: processData.userId,
+        processExecutions: {
+          create: {
+            id: processExecution.id,
+            expectedEggs: processExecution.expectedEggs,
+            algorithm: processExecution.algorithm,
+            description: processExecution.description,
+          }
         },
       },
       include: {
-        results: {
-          orderBy: { createdAt: 'desc' },
+        processExecutions: {
+          // get the most recent execution
           take: 1,
+          orderBy: { createdAt: 'desc' },
         }
-      },
+      }
     });
 
-    return process;
+    return {
+      process: createdPRocess,
+      processExecution: createdPRocess.processExecutions[0],
+    }
+
   }
 
   async updateProcess(processId: string, updateProcessDto: UpdateProcessDto) {
@@ -53,7 +91,7 @@ export class ProcessService {
         where: { userId },
         orderBy: { createdAt: 'desc' },
         include: {
-          results: {
+          processExecutions: {
             orderBy: { createdAt: 'desc' },
           },
           user: {
@@ -65,13 +103,14 @@ export class ProcessService {
       });
   }
 
-  async findOne(processId: string, take?: number) {
+
+  async findOne(processId: string) {
+
     const process = await this.prisma.process.findUnique({
       where: { id: processId },
       include: {
-        results: {
+        processExecutions: {
           orderBy: { createdAt: 'desc' },
-          take,
         },
         user: {
           omit: {

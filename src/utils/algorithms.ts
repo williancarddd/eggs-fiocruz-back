@@ -1,5 +1,5 @@
 export enum Algorithms {
-  BLIND_SQUARE_1 = 'blind-square-1',
-  DEEP_BLIND_SQUARE = 'deep-blind-square',
-  DEFAULT = 'default',
+  traditional_v1 = 'traditional-v1',
+  deep_v1 = 'deep-v1',
+  deep_v2 = 'deep-v2',
 }

@@ -1,7 +1,6 @@
-import { Injectable, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/common/databases/prisma-module/prisma.service';
-import { UpdateProcessExecutionDto } from './dto/update-process-execution.dto';
-import { CreateProcessExecutionDto } from './dto/create-process-execution.dto';
+import { CreateProcessExecutionDto, UpdateProcessExecutionDto } from './dto/process-execution.dto';
 
 @Injectable()
 export class ProcessExecutionService {
@@ -17,6 +16,9 @@ export class ProcessExecutionService {
     return await this.prisma.processExecutions.update({
       where: { id: executionId },
       data: updateDto,
+      include: {
+        Process: true,
+      }
     });
   }
 
@@ -31,6 +33,5 @@ export class ProcessExecutionService {
     }
 
     return await this.prisma.processExecutions.delete({ where: { id: executionId } });
-
   }
 }

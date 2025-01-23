@@ -3,9 +3,8 @@ import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import * as FormData from 'form-data'
 import { Readable } from 'stream';
-import { ProcessExecutions } from 'src/process/entities/process-executions.entity';
 import { Algorithms } from 'src/utils/algorithms';
-import { EggsCountResponseAIType } from 'src/process/dto/response-create-process.dto';
+import { EggsCountResponseAIType } from 'src/process/dto/response-api-ai.dto';
 import { AxiosError } from 'axios';
 
 @Injectable()

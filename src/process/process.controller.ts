@@ -21,24 +21,19 @@ import {
   ApiBody,
   ApiQuery,
   ApiOkResponse,
-  ApiResponse,
   ApiNotFoundResponse,
   ApiParam,
 } from '@nestjs/swagger';
 import { ProcessService } from './process.service';
-import { CreateProcessSchema } from './dto/create-process.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ProcessExecutionService } from './process-execution.service';
 import { SupabaseService } from 'src/common/databases/supabase/supabase.service';
-import { Readable } from 'stream';
 import { EggsCountService } from 'src/eggs-count/eggs-count.service';
-import { ResponseCreatedProcessDto } from './dto/response-create-process.dto';
-import { CreateProcessExecutionDto, CreateProcessExecutionSchema } from './dto/create-process-execution.dto';
 import { FindAllQueryDto } from './dto/findall-query.dto';
-import { ProcessDto } from './entities/process.entity';
 import { ApiPaginatedResponse } from 'src/common/decorators/api-paginated-response.decorator';
-import { ProcessExecutionsSchema } from './entities/process-executions.entity';
 import { Algorithms } from 'src/utils/algorithms';
+import { ProcessDto } from './dto/process.dto';
+import { v4 as uuidv4 } from 'uuid';
 
 @ApiTags('process')
 @Controller('fiocruz/process')
@@ -57,6 +52,7 @@ export class ProcessController {
     schema: {
       type: 'object',
       properties: {
+        processId: { type: 'string', format: 'uuid', description: 'ID of the process to be re-calculated' },
         description: { type: 'string', description: 'Description of the process' },
         userId: { type: 'string', format: 'uuid', description: 'ID of the user initiating the process' },
         image: { type: 'string', format: 'binary', description: 'The image file to be uploaded' },
@@ -69,141 +65,83 @@ export class ProcessController {
   })
   @UseInterceptors(FileInterceptor('image'))
   @ApiCreatedResponse({
-    type: ResponseCreatedProcessDto,
     description: 'Process created successfully',
   })
   @ApiBadRequestResponse({ description: 'Invalid or missing data' })
   async create(
-    @Body() createProcessDto: any,
+    @Body() receivedApiDataDto: {
+      processId: string;
+      description: string;
+      userId: string;
+      algorithm: Algorithms;
+      expectedEggs: number;
+    },
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
       throw new BadRequestException('File is required');
     }
 
-    // Prepare process execution data
-    const processExecution = { algorithm: createProcessDto.algorithm };
-    createProcessDto.processExecution = processExecution;
 
-    delete createProcessDto.algorithm;
-    
-    const parsedCreateProcessDto = CreateProcessSchema.parse({
-      ...createProcessDto,
-      resultPath: '',
-    });
-
-    try {
-      // Validate input data using Zod
-      
-      console.log('imageStream', parsedCreateProcessDto);
-      // Analyze the uploaded image for egg count
-      
-      const eggsCountResponse = await this.eggsCountService.create({
-        image: file.buffer,
-        algorithm: processExecution.algorithm,
-      });
-
-      console.log('etapa eggsCountResponse');
-
-      // If image analysis is successful, proceed with process creation
-      const process = await this.processService.createProcess({
-        ...parsedCreateProcessDto,
-        processExecution,
-      });
-      
-      console.log('etapa process create');
-
-      // Upload the image to Supabase
-      const uploadedImage = await this.supabaseService.uploadImage(
-        file,
-        process.userId,
-        process.id,
-      );
-
-      console.log('etapa upload  image');
-      
-      if (!uploadedImage || !uploadedImage.publicUrl) {
-        throw new HttpException(
-          'Failed to upload image to Supabase',
-          HttpStatus.BAD_GATEWAY,
-        );
-      }
-
-      await this.processService.updateProcess(process.id, {
-        resultPath: uploadedImage.publicUrl,
-      });
-
-      // Update the process execution with results
-      const latestExecutionId = process.results[0]?.id; // Assuming the first result is the latest
-      if (latestExecutionId) {
-        await this.processExecution.updateExecution(latestExecutionId, {
-          status: 'COMPLETED',
-          eggsCount: eggsCountResponse!.total_eggs,
-          initialTimestamp: new Date(eggsCountResponse!.initial_time * 1000),
-          finalTimestamp: new Date(eggsCountResponse!.final_time * 1000),
-        });
-      }
-
-      // Retrieve the process with its updated executions
-      const updatedProcess = await this.processService.findOne(process.id, 1);
-
-      return {
-        process: updatedProcess,
-        eggsCountResponseAI: eggsCountResponse,
-      };
-    } catch (error) {
-      // Handle any errors during the image analysis or process creation
-      throw new HttpException(
-        `Failed to create process: ${error}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-  }
-
-
-
-  @Post("/process-execution")
-  @ApiOperation({ summary: 'Re-calculate a process', operationId: 'createProcessExecution' })
-  @ApiBody({ type: CreateProcessExecutionDto })
-  @ApiOkResponse({ type: ResponseCreatedProcessDto })
-  @ApiBadRequestResponse({ description: 'Invalid or missing data' })
-  async createProcessExecution(
-    @Body() createProcessExecutionDto: CreateProcessExecutionDto,
-  ) {
-    // Validate using Zod
-    const parsedCreateProcessExecutionDto = CreateProcessExecutionSchema.parse(createProcessExecutionDto);
-
-    const process = await this.processService.findOne(parsedCreateProcessExecutionDto.processId);
-
-    if (!process) {
-      throw new NotFoundException('Process not found');
-    }
-
-    const urlWithImage = process.resultPath;
-
-    // download image from url
-    const imageDownloaded = await this.supabaseService.downloadImage(urlWithImage!);
 
     // Analyze the uploaded image for egg count
-    const imageStream = Readable.from(Buffer.from(await imageDownloaded.arrayBuffer()));
-    const eggsCountResponse = await this.eggsCountService.create({ image: imageStream, algorithm: parsedCreateProcessExecutionDto.algorithm });
 
-    // Save the process execution in the database
-    const processExecution = await this.processExecution.createExecution(parsedCreateProcessExecutionDto);
-    await this.processExecution.updateExecution(processExecution.id, {
-      status: 'COMPLETED',
-      eggsCount: eggsCountResponse!.total_eggs,
-      initialTimestamp: new Date(eggsCountResponse!.initial_time * 1000),
-      finalTimestamp: new Date(eggsCountResponse!.final_time * 1000),
+    const eggsCountResponse = await this.eggsCountService.create({
+      image: file.buffer,
+      algorithm: receivedApiDataDto.algorithm,
     });
-    const updatedProcess = await this.processService.findOne(process.id, 1);
-    return {
-      process: updatedProcess,
-      eggsCountResponseAI: eggsCountResponse,
-    };
+
+    // Upload the image to Supabase
+    const processId = receivedApiDataDto.processId ? receivedApiDataDto.processId : uuidv4();
+    const processExecutionId = uuidv4();
+
+    const uploadedImage = await this.supabaseService.uploadImage(
+      file,
+      receivedApiDataDto.userId,
+      processExecutionId,
+    );
+
+    if (!uploadedImage || !uploadedImage.publicUrl) {
+      throw new HttpException(
+        'Failed to upload image to Supabase',
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+
+    // If image analysis is successful, proceed with process creation
+    await this.processService.createProcess(
+      {
+        id: processId,
+        description: 'Podem ser submetidas várias execuções para mesma imagem nesse processo',
+        userId: receivedApiDataDto.userId,
+        processExecution:
+        {
+          id: processExecutionId,
+          expectedEggs: Number(receivedApiDataDto.expectedEggs) || 0,
+          algorithm: receivedApiDataDto.algorithm,
+          description: receivedApiDataDto.description,
+        },
+      }
+    );
+
+
+
+    const updatedProcessExecution = await this.processExecution.updateExecution(processExecutionId, {
+      resultPath: uploadedImage.publicUrl,
+      metadata: JSON.stringify(eggsCountResponse, null, 2),
+      eggsCount: eggsCountResponse!.total_objects,
+      status: 'COMPLETED',
+      initialTimestamp: new Date(eggsCountResponse!.initial_time * 1000).toISOString(),
+      finalTimestamp: new Date(eggsCountResponse!.final_time * 1000).toISOString(),
+    });
+
+
+
+    return updatedProcessExecution;
+
 
   }
+
 
   @Get()
   @ApiOperation({ summary: 'List all processes', operationId: 'findAllProcesses' })
