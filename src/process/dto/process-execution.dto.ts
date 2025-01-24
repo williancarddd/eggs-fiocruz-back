@@ -138,3 +138,8 @@ export const CreateProcessExecutionSchema = z
 export class CreateProcessExecutionDto extends createZodDto(
   CreateProcessExecutionSchema
 ) { }
+
+
+export class ProcessExecutionsDto extends createZodDto(
+  ProcessExecutionsSchema
+) { }

@@ -22,6 +22,15 @@ export class ProcessExecutionService {
     });
   }
 
+  async getExecution(executionId: string) {
+    return await this.prisma.processExecutions.findUnique({
+      where: { id: executionId },
+      include: {
+        Process: true,
+      }
+    });
+  }
+
   async deleteExecution(executionId: string) {
 
     const processExecution = await this.prisma.processExecutions.findUnique({

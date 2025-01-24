@@ -35,6 +35,7 @@ import { Algorithms } from 'src/utils/algorithms';
 import { ProcessDto } from './dto/process.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateProcessWithProcessExecutionDto } from './dto/response-api-ai.dto';
+import { CreateProcessExecutionDto, ProcessExecutionsDto } from './dto/process-execution.dto';
 
 @ApiTags('process')
 @Controller('fiocruz/process')
@@ -195,6 +196,20 @@ export class ProcessController {
   @ApiNotFoundResponse({ description: 'Processo não encontrado' })
   findOne(@Param('id') id: string) {
     return this.processService.findOne(id);
+  }
+
+
+  @Get('/submission/:id')
+  @ApiOperation({ summary: 'Find a process execution by ID', operationId: 'findProcessExecutionById' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID of the process to be retrieved',
+    type: String,
+  })
+  @ApiOkResponse({ type: ProcessExecutionsDto })
+  @ApiNotFoundResponse({ description: 'Processo não encontrado' })
+  findProcessExecution(@Param('id') id: string) {
+    return this.processExecution.getExecution(id);
   }
 
 }
