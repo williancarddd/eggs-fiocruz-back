@@ -35,7 +35,7 @@ import { Algorithms } from 'src/utils/algorithms';
 import { ProcessDto } from './dto/process.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateProcessWithProcessExecutionDto } from './dto/response-api-ai.dto';
-import { CreateProcessExecutionDto, ProcessExecutionsDto } from './dto/process-execution.dto';
+import { ProcessExecutionsDto } from './dto/process-execution.dto';
 
 @ApiTags('process')
 @Controller('fiocruz/process')

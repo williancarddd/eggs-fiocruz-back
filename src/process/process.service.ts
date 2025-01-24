@@ -123,7 +123,7 @@ export class ProcessService {
     return process;
   }
 
-  
+
 
   async deleteProcess(processId: string) {
     const process = await this.prisma.process.findUnique({ where: { id: processId } });
