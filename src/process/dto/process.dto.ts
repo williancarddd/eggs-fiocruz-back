@@ -14,7 +14,7 @@ export const ProcessSchema = z.object({
   user: UserSchema.omit({
     password: true,
   }).optional().describe("User"),
-  processExecution: ProcessExecutionsSchema.array().optional().describe("Process Executions"),
+  processExecutions: ProcessExecutionsSchema.array().optional().describe("Process Executions"),
   createdAt: z.string().datetime().optional().describe("Date of Creation"),
   updatedAt: z.string().datetime().optional().describe("Date of Update"),
 });
