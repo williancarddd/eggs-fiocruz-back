@@ -14,15 +14,15 @@ services:
       - eggs-network
     restart: always
   
-  # python_server:
-  #   build:
-  #     context: ./python
-  #     dockerfile: ./Dockerfile
-  #   ports:
-  #     - "${PORT_PYTHON_SERVER}:5000"
-  #   networks:
-  #     - eggs-network
-  #   restart: always
+  python_server:
+    build:
+      context: ./python
+      dockerfile: ./Dockerfile
+    ports:
+      - "${PORT_PYTHON_SERVER}:5000"
+    networks:
+      - eggs-network
+    restart: always
 
   database-eggs-count:
     image: postgres:15-alpine
