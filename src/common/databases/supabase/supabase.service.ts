@@ -13,15 +13,15 @@ export class SupabaseService {
 
   }
 
-  async uploadImage(file: Express.Multer.File, userId: string, processId: string) {
+  async uploadImage({ file, userId, processExecutionId }: { file: Express.Multer.File, userId: string, processExecutionId: string }) {
     const supabase = this.getClient();
-    const imageName = `${file.originalname.split('.')[0]}-${processId}`;
+    const imageName = `${processExecutionId}`;
     const filePath = `${userId}/${imageName}`;
     const { data, error } = await supabase.storage
       .from(
         'eggs-palet-images'
       )
-      .upload(filePath, file.buffer, { 
+      .upload(filePath, file.buffer, {
         upsert: true,
         contentType: file.mimetype,
       });
@@ -31,6 +31,7 @@ export class SupabaseService {
         .getPublicUrl(
           filePath
         )
+        
     if (error) {
       throw new Error(`Error uploading file: ${error.message}`)
     }

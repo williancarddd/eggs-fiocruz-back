@@ -99,9 +99,11 @@ export class ProcessController {
     const processExecutionId = uuidv4();
 
     const uploadedImage = await this.supabaseService.uploadImage(
-      file,
-      receivedApiDataDto.userId,
-      processExecutionId,
+      {
+        file,
+        userId: receivedApiDataDto.userId,
+        processExecutionId,
+      }
     );
 
     if (!uploadedImage || !uploadedImage.publicUrl) {
