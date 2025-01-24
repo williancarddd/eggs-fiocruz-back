@@ -7,3 +7,4 @@ flask
 jsonify
 gunicorn
 ultralytics
+scikit-image
