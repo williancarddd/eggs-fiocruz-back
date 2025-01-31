@@ -6,10 +6,13 @@ from skimage import exposure
 
 
 class DeepAlgorithmV2(BaseAlgorithm):
+    model = None  # Class-level singleton
+
     def __init__(self, square_size=256):
         self.square_size = square_size
-        model_path = './algorithms/models_ai/scanner-model.pt'
-        self.model = YOLO(model_path, verbose=False)
+        if DeepAlgorithmV2.model is None:
+            model_path = './algorithms/models_ai/scanner-model.pt'
+            DeepAlgorithmV2.model = YOLO(model_path, verbose=False)
 
     def normalize(self, image):
         increased_contrast = exposure.adjust_gamma(image, gamma=1.5)
@@ -36,8 +39,10 @@ class DeepAlgorithmV2(BaseAlgorithm):
         for result in results:
             for box in result.boxes:  # Access the boxes from the result
                 x1, y1, x2, y2 = box.xyxy[0].tolist()  # Extract coordinates
-                confidence = box.conf[0]  # Extract the first value of the confidence score
-                label = int(box.cls[0])  # Extract the first value of the class label
+                # Extract the first value of the confidence score
+                confidence = box.conf[0]
+                # Extract the first value of the class label
+                label = int(box.cls[0])
                 boxes_list.append([x1, y1, x2, y2])
         print(boxes_list)
         return len(boxes_list), 0, boxes_list

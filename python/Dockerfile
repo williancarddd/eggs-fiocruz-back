@@ -15,16 +15,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Define o diretório de trabalho
 WORKDIR /app
 
-# Copia o arquivo requirements.txt para o contêiner
+# Primeiro copia apenas o requirements.txt
 COPY requirements.txt .
 
 # Instala dependências do Python
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Copia o código da aplicação para o contêiner
+# Remove build-essential após instalar as dependências
+RUN apt-get purge -y --auto-remove build-essential && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copia o restante do código
 COPY . .
 
-
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+ENV NVIDIA_VISIBLE_DEVICES all
 
 # Comando para rodar a aplicação com gunicorn
-CMD ["gunicorn",  "-b", "0.0.0.0:5000",   "app:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]

@@ -14,7 +14,7 @@ class AlgorithmRunner:
         self.square_processor = None
 
         # Read and decode the image
-        self.image = np.frombuffer(image.read(), np.uint8)
+        self.image = np.frombuffer(image.stream.read(), np.uint8)
 
         if self.algorithm == 'traditional-v1':
             self.image = cv2.imdecode(self.image, cv2.IMREAD_COLOR)
