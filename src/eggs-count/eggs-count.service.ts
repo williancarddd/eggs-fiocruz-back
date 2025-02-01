@@ -25,10 +25,12 @@ export class EggsCountService {
       : createEggsCountDto.image;
 
     // Adiciona o arquivo ao FormData
-    form.append('file', imageStream, 'imagem.jpg');
+    form.append('file', imageStream, { filename: 'image.jpg' }); // Specify filename
+
     form.append('algorithm', createEggsCountDto.algorithm);
 
     try {
+      console.log('process.env.EGGS_SERVER', process.env.EGGS_SERVER);
       const response = await firstValueFrom(
         this.httpService.post<EggsCountResponseAIType>(process.env.EGGS_SERVER as string, form, {
           headers: {
@@ -36,6 +38,7 @@ export class EggsCountService {
           },
         })
       );
+      console.log('response.data', response.data);
       return response.data;
     } catch (error) {
       // console message error

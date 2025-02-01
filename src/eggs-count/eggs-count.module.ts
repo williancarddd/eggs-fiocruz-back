@@ -6,10 +6,9 @@ import { EggsCountService } from './eggs-count.service';
 @Module({
   imports: [
     HttpModule.register({
-      timeout: 50000,
     }),
   ],
   providers: [EggsCountService],
   exports: [EggsCountService],
 })
-export class EggsCountModule {}
+export class EggsCountModule { }
