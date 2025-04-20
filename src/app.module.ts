@@ -1,26 +1,11 @@
-import { MiddlewareConsumer, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { PrismaModule } from './common/databases/prisma.module';
-import { UsersModule } from './users/users.module';
-import { ProcessModule } from './process/process.module';
-import { EggsCountModule } from './eggs-count/eggs-count.module';
-import { AuthModule } from './auths/auths.module';
-import { APP_GUARD } from '@nestjs/core';
-import { JwtAuthGuard } from './auths/guards/jwt-auth.guards';
-import { JwtService } from '@nestjs/jwt';
+import { NotificationsModule } from './notification/notifications.module';
+import { UserModule } from './users/users.module';
+
 @Module({
-  imports: [PrismaModule,
-    AuthModule,
-    UsersModule,
-    ProcessModule,
-    EggsCountModule
-  ],
+  imports: [PrismaModule, NotificationsModule, UserModule],
   controllers: [],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
-    JwtService
-  ],
+  providers: [],
 })
-export class AppModule { }
+export class AppModule {}

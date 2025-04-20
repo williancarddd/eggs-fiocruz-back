@@ -1,10 +1,9 @@
-import * as bcrypt from 'bcrypt';
-import { ENV } from 'src/common/constants/constants';
-
-export async function comparePassoword(password: string, ecrypted: string) {
-  return await bcrypt.compare(password, ecrypted);
-}
+import * as bcrypt from 'bcryptjs';
 
 export function encryptPassword(password: string): string {
   return bcrypt.hashSync(password, 8);
+}
+
+export function comparePasswords(password: string, hash: string): boolean {
+  return bcrypt.compareSync(password, hash);
 }

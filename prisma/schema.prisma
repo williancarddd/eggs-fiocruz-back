@@ -22,20 +22,25 @@ enum ProcessStatus {
 }
 
 model User {
-  id       String @id @default(uuid())
-  name     String
-  email    String @unique()
-  password String
-  type     Role   @default(COLLECTOR)
+  id                             String    @id @default(uuid())
+  name                           String
+  avatar                         String?
+  email                          String    @unique()
+  phone                          String?   @unique()
+  password                       String
+  recoveryPasswordToken          String?
+  recoveryPasswordTokenExpiresAt DateTime?
+  type                           Role      @default(COLLECTOR)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt()
 
-  processes    Process[]
-  loginHistory loginHistory[]
+  processes       Process[]
+  loginHistory    LoginHistory[]
+  linkedProcesses ProcessUser[]
 }
 
-model loginHistory {
+model LoginHistory {
   id      String   @id @default(uuid())
   userId  String
   loginAt DateTime @default(now())
@@ -54,28 +59,65 @@ model Process {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt()
 
-  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  processExecutions ProcessExecutions[]
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  palettes     Palette[] // imagens processadas
+  processUsers ProcessUser[]
+  locations    ProcessLocation[]
 }
 
-model ProcessExecutions {
-  id          String        @id @default(uuid())
-  processId   String?
-  algorithm   String?
-  resultPath  String?
-  description String?
-  status      ProcessStatus @default(PENDING)
+model Palette {
+  id        String @id @default(uuid())
+  processId String
+  filename  String
+  format    String
+  path      String
+  width     Int?
+  height    Int?
+  metadata  Json?
 
-  metadata Json?
-
-  eggsCount    Int?
-  expectedEggs Int?
-
+  status           ProcessStatus @default(PENDING)
+  eggsCount        Int?
+  expectedEggs     Int?
   initialTimestamp DateTime?
   finalTimestamp   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt()
 
-  Process Process? @relation(fields: [processId], references: [id], onDelete: Cascade)
+  process Process @relation(fields: [processId], references: [id], onDelete: Cascade)
+}
+
+model Location {
+  id     String  @id @default(uuid())
+  name   String
+  global Boolean @default(false)
+
+  processes ProcessLocation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+}
+
+model ProcessLocation {
+  id         String @id @default(uuid())
+  processId  String
+  locationId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+
+  process  Process  @relation(fields: [processId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+}
+
+model ProcessUser {
+  id        String @id @default(uuid())
+  userId    String
+  processId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  process Process @relation(fields: [processId], references: [id], onDelete: Cascade)
 }

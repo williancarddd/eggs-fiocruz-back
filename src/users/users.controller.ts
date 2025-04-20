@@ -2,135 +2,123 @@ import {
   Controller,
   Get,
   Post,
-  Body,
-  Patch,
-  Param,
+  Put,
   Delete,
+  Param,
+  Body,
+  Query,
+  UseInterceptors,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { ApiBody, ApiOperation, ApiTags, ApiResponse, ApiParam } from '@nestjs/swagger';
-import { Public } from 'src/common/decorators/public-endpoint.decorator';
+import { UserService } from './users.service';
 import { ApiPaginatedResponse } from 'src/common/decorators/api-paginated-response.decorator';
-import { UserDto } from './entities/user.entity';
+import {
+  ResponsePaginatedUsersDto,
+  ResponsePaginatedUsersSchema,
+} from './dto/response-paginated-users.dto';
+import { ZodResponseInterceptor } from 'src/common/interceptors/zod-response.interceptor';
+import { ResponseUserDto, ResponseUserSchema } from './dto/response-user.dto';
+import { Public } from 'src/common/decorators/public-endpoint.decorator';
+import { CreateUserDto } from './dto/create-owner.dto';
 
-@Controller('fiocruz/users')
-@ApiTags('Users') // Agrupa os endpoints na seção 'Users' no Swagger
-export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+@ApiTags('Users')
+@Controller('users')
+@ApiBearerAuth('JWT-auth')
+export class UserController {
+  constructor(private readonly userService: UserService) {}
 
-  @ApiOperation({
-    summary: 'Create a new user', // Breve descrição da funcionalidade
-    operationId: 'createUser', // ID único para referência no Swagger
+  @Get()
+  @ApiOperation({ summary: 'List all users with dynamic filters' })
+  @ApiPaginatedResponse(ResponseUserDto)
+  @ApiResponse({
+    status: 200,
+    description: 'List of users',
+    type: ResponsePaginatedUsersDto,
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number for pagination',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page',
+  })
+  @ApiQuery({
+    name: 'name',
+    required: false,
+    type: String,
+    description: 'Filter by name',
+  })
+  @ApiQuery({
+    name: 'email',
+    required: false,
+    type: String,
+    description: 'Filter by email',
+  })
+  @UseInterceptors(new ZodResponseInterceptor(ResponsePaginatedUsersSchema))
+  async findAll(@Query() query: any) {
+    return this.userService.findAll(query);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a user by ID' })
+  @ApiParam({ name: 'id', description: 'User identifier' })
+  @ApiResponse({
+    status: 200,
+    description: 'User found',
+    type: ResponseUserDto,
+  })
+  @UseInterceptors(new ZodResponseInterceptor(ResponseUserSchema))
+  async findOne(@Param('id') id: string) {
+    return this.userService.findOne({ id });
+  }
+
+  @Public()
+  @Post()
+  @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({
     status: 201,
-    description: 'User successfully created.', // Mensagem de resposta bem-sucedida
-    type: UserDto,
+    description: 'User registered successfully',
+    type: ResponseUserDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid input data.', // Mensagem de erro para entrada inválida
-  })
-  @Post()
-  @Public()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  @UseInterceptors(new ZodResponseInterceptor(ResponseUserSchema))
+  async registerOwner(@Body() createUser: CreateUserDto) {
+    return this.userService.create(createUser);
   }
 
-  @ApiOperation({
-    summary: 'List all users',
-    operationId: 'findAllUsers',
-  })
-  @ApiPaginatedResponse(UserDto) // Resposta paginada personalizada
+  @Put(':id')
+  @ApiOperation({ summary: 'Update an existing user' })
+  @ApiParam({ name: 'id', description: 'User identifier' })
   @ApiResponse({
     status: 200,
-    description: 'List of all users.',
-    type: [UserDto],
+    description: 'User updated successfully',
+    type: ResponseUserDto,
   })
-  @Get()
-  findAll() {
-    return this.usersService.findAll();
+  @UseInterceptors(new ZodResponseInterceptor(ResponseUserSchema))
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.userService.update(id, updateUserDto);
   }
 
-  @ApiOperation({
-    summary: 'Find a user by ID',
-    operationId: 'findUserById',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'ID of the user to be retrieved.',
-    type: String,
-    example: '12345',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'User found.',
-    type: UserDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'User not found.',
-  })
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
-  }
-
-  @ApiOperation({
-    summary: 'Update a user by ID',
-    operationId: 'updateUser',
-  })
-  @ApiBody({
-    description: 'Data to update the user.',
-    type: UpdateUserDto,
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'ID of the user to be updated.',
-    type: String,
-    example: '12345',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'User successfully updated.',
-    type: UserDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid update data.',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'User not found.',
-  })
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(id, updateUserDto);
-  }
-
-  @ApiOperation({
-    summary: 'Delete a user by ID',
-    operationId: 'deleteUser',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'ID of the user to be deleted.',
-    type: String,
-    example: '12345',
-  })
-  @ApiResponse({
-    status: 200,
-    type: UserDto,
-    description: 'User successfully deleted.',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'User not found.',
-  })
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  @ApiOperation({ summary: 'Delete a user' })
+  @ApiParam({ name: 'id', description: 'User identifier' })
+  @ApiResponse({
+    status: 200,
+    description: 'User deleted successfully',
+  })
+  async remove(@Param('id') id: string) {
+    return this.userService.remove(id);
   }
 }

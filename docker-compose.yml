@@ -1,31 +1,13 @@
-version: '3.8'
+version: '3'
 
 services:
-  app-eggs-count:
-    build: .
+  database:
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=${DATABASE_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${DATABASE_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${DATABASE_POSTGRES_DB}
     ports:
-      - "${PORT_APP}:${PORT_APP}"
-    depends_on:
-      - database-eggs-count
-  
-    links:
-      - "database-eggs-count:${HOST}"
-    networks:
-      - eggs-network
-    restart: always
-  
-
-  database-eggs-count:
-    image: postgres:15-alpine
-    volumes:
-      - fiocruz-eggs-count:/var/lib/postgresql/data
-    restart: always
-    networks:
-      - eggs-network
-
-volumes:
-  fiocruz-eggs-count:
-
-networks:
-  eggs-network:
-    driver: bridge
+      - '5432:5432'
+    expose:
+      - '5432'
