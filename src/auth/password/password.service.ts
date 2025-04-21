@@ -42,8 +42,9 @@ export class PasswordService {
   async validateUser(email: string, password: string) {
     const user = await this.userService.findOne({ email });
     if (!user) throw new UnauthorizedException('User not found');
-
+    if (!user.password) throw new UnauthorizedException('Password not set');
     const isValid = comparePasswords(password, user.password);
+
     if (!isValid) throw new UnauthorizedException('Invalid password');
 
     return {

@@ -75,7 +75,6 @@ export class UserService {
     const user = await this.prisma.user.create({
       data: {
         ...parsed,
-        password: encryptPassword(parsed.password),
       },
     });
 

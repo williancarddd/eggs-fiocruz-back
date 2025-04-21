@@ -1,7 +1,6 @@
 generator client {
-  provider        = "prisma-client-js"
-  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
-  previewFeatures = ["omitApi"]
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -41,9 +40,14 @@ model User {
 }
 
 model LoginHistory {
-  id      String   @id @default(uuid())
-  userId  String
-  loginAt DateTime @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  ipAddress String
+  userAgent String
+  url       String
+  location  String?
+  strategy  String
+  loginAt   DateTime @default(now())
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt()

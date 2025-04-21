@@ -7,7 +7,6 @@ export const CreateUserSchema = UserEntitySchema.pick({
   email: true,
   name: true,
   phone: true,
-  avatar: true,
 })
   .extend({
     password: z

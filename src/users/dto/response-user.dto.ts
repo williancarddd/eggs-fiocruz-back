@@ -12,6 +12,6 @@ export const ResponseUserSchema = UserEntitySchema.extend({
       }),
     )
     .optional(),
-});
+}).partial();
 
 export class ResponseUserDto extends createZodDto(ResponseUserSchema) {}
