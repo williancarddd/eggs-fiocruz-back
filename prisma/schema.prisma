@@ -29,7 +29,7 @@ model User {
   password                       String
   recoveryPasswordToken          String?
   recoveryPasswordTokenExpiresAt DateTime?
-  type                           Role      @default(COLLECTOR)
+  role                           Role      @default(COLLECTOR)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt()

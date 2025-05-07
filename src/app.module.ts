@@ -9,6 +9,7 @@ import { LoggerHttpMiddleware } from './common/middleware/logging-http.middlewar
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TenantModule } from './tenant/tenant.module';
 import { ProcessModule } from './process/process.module';
+import { PaletteModule } from './palletes/pallete.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ProcessModule } from './process/process.module';
     AuthModule,
     UserModule,
     ProcessModule,
+    PaletteModule,
   ],
   controllers: [],
   providers: [

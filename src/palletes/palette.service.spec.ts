@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaletteService } from './palette.service';
 import { PrismaService } from '../common/databases/prisma-module/prisma.service';
-import { SupabaseService } from '../common/databases/supabase/supabase.service';
 import { NotFoundException } from '@nestjs/common';
+import { StorageService } from 'src/common/databases/storage/storage.service';
 
 describe('PaletteService', () => {
   let service: PaletteService;
   let prismaService: PrismaService;
-  let supabaseService: SupabaseService;
+  let storageService: StorageService;
 
   const mockPalette = {
     id: 'palette-id',
@@ -43,7 +43,7 @@ describe('PaletteService', () => {
           },
         },
         {
-          provide: SupabaseService,
+          provide: StorageService,
           useValue: {
             removeFile: jest.fn().mockResolvedValue(true),
           },
@@ -53,7 +53,7 @@ describe('PaletteService', () => {
 
     service = module.get<PaletteService>(PaletteService);
     prismaService = module.get<PrismaService>(PrismaService);
-    supabaseService = module.get<SupabaseService>(SupabaseService);
+    storageService = module.get<StorageService>(StorageService);
   });
 
   it('should be defined', () => {
@@ -100,7 +100,7 @@ describe('PaletteService', () => {
     it('should delete a palette and its associated file', async () => {
       const result = await service.delete('palette-id');
       expect(result).toEqual({ message: 'Palette deleted successfully' });
-      expect(supabaseService.removeFile).toHaveBeenCalledWith(mockPalette.path);
+      expect(storageService.removeFile).toHaveBeenCalledWith(mockPalette.path);
       expect(prismaService.palette.delete).toHaveBeenCalledWith({
         where: { id: 'palette-id' },
       });
@@ -108,7 +108,7 @@ describe('PaletteService', () => {
 
     it('should delete palette from database even if file deletion fails', async () => {
       jest
-        .spyOn(supabaseService, 'removeFile')
+        .spyOn(storageService, 'removeFile')
         .mockRejectedValueOnce(new Error('Storage error'));
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 

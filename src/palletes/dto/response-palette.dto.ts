@@ -1,5 +1,5 @@
 import { createZodDto } from 'nestjs-zod';
-import { PaletteEntitySchema } from '../entities/palette.entity';
+import { PaletteEntitySchema } from '../../palletes/entities/palette.entity';
 
 export const ResponsePaletteSchema = PaletteEntitySchema.partial();
 

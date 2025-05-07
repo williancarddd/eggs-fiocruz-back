@@ -5,6 +5,8 @@ import {
   Delete,
   Query,
   UseInterceptors,
+  Patch,
+  Body,
 } from '@nestjs/common';
 import { PaletteService } from './palette.service';
 import {
@@ -16,10 +18,13 @@ import {
 } from '@nestjs/swagger';
 import { ProcessStatus } from '@prisma/client';
 import { ZodResponseInterceptor } from 'src/common/interceptors/zod-response.interceptor';
-import { ResponsePaginatedPaletteSchema } from './dto/response-paginated-palette.dto';
-import { ResponsePaletteSchema } from './dto/response-palette.dto';
 import { ApiPaginatedResponse } from 'src/common/decorators/api-paginated-response.decorator';
-import { ResponsePaletteDto } from './dto/response-palette.dto';
+import { ResponsePaginatedPaletteSchema } from './dto/response-paginated-palette.dto';
+import {
+  ResponsePaletteDto,
+  ResponsePaletteSchema,
+} from './dto/response-palette.dto';
+import { UpdatePaletteDto } from './dto/update-palette.dto';
 
 @ApiTags('Palettes')
 @Controller('palettes')
@@ -87,6 +92,18 @@ export class PaletteController {
   @UseInterceptors(new ZodResponseInterceptor(ResponsePaletteSchema))
   findOne(@Param('id') id: string) {
     return this.paletteService.findOne(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update a palette' })
+  @ApiResponse({
+    status: 200,
+    description: 'Return the updated palette',
+    type: ResponsePaletteDto,
+  })
+  @UseInterceptors(new ZodResponseInterceptor(ResponsePaletteSchema))
+  update(@Param('id') id: string, @Body() updatePaletteDto: UpdatePaletteDto) {
+    return this.paletteService.update(id, updatePaletteDto);
   }
 
   @Delete(':id')

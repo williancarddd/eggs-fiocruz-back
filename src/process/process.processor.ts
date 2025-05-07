@@ -2,8 +2,8 @@ import { Process, Processor } from '@nestjs/bull';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Job } from 'bull';
 import { PrismaService } from 'src/common/databases/prisma-module/prisma.service';
-import { SupabaseService } from 'src/common/databases/supabase/supabase.service';
 import axios from 'axios';
+import { StorageService } from 'src/common/databases/storage/storage.service';
 
 @Injectable()
 @Processor('image-processing')
@@ -12,7 +12,7 @@ export class ProcessProcessor {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly supabaseService: SupabaseService,
+    private readonly storageService: StorageService,
   ) {}
 
   @Process('process-image')
@@ -35,9 +35,15 @@ export class ProcessProcessor {
       if (!palette) {
         throw new NotFoundException(`Palette with ID ${paletteId} not found`);
       }
+      const actualBuffer = Buffer.isBuffer(buffer)
+        ? buffer
+        : Buffer.from(buffer.data);
 
-      const uploadResult = await this.supabaseService.uploadImage({
-        file: { buffer, originalname: filename } as Express.Multer.File,
+      const uploadResult = await this.storageService.uploadImage({
+        file: {
+          buffer: actualBuffer,
+          originalname: filename,
+        } as Express.Multer.File,
         userId: palette.process.userId,
         processExecutionId: paletteId,
       });

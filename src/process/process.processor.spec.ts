@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProcessProcessor } from './process.processor';
 import { PrismaService } from '../common/databases/prisma-module/prisma.service';
-import { SupabaseService } from '../common/databases/supabase/supabase.service';
 import { Job } from 'bull';
 import axios from 'axios';
+import { StorageService } from 'src/common/databases/storage/storage.service';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
@@ -11,7 +11,7 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 describe('ProcessProcessor', () => {
   let processor: ProcessProcessor;
   let prismaService: PrismaService;
-  let supabaseService: SupabaseService;
+  let storageService: StorageService;
 
   const mockPalette = {
     id: 'palette-id',
@@ -44,7 +44,7 @@ describe('ProcessProcessor', () => {
           },
         },
         {
-          provide: SupabaseService,
+          provide: StorageService,
           useValue: {
             uploadImage: jest.fn().mockResolvedValue({
               publicUrl: 'https://test.com/image.jpg',
@@ -56,7 +56,7 @@ describe('ProcessProcessor', () => {
 
     processor = module.get<ProcessProcessor>(ProcessProcessor);
     prismaService = module.get<PrismaService>(PrismaService);
-    supabaseService = module.get<SupabaseService>(SupabaseService);
+    storageService = module.get<StorageService>(StorageService);
   });
 
   it('should be defined', () => {
@@ -86,7 +86,7 @@ describe('ProcessProcessor', () => {
         }),
       });
 
-      expect(supabaseService.uploadImage).toHaveBeenCalledWith({
+      expect(storageService.uploadImage).toHaveBeenCalledWith({
         file: expect.objectContaining({
           buffer: mockJob.data.buffer,
           originalname: mockJob.data.filename,
@@ -134,7 +134,7 @@ describe('ProcessProcessor', () => {
       });
 
       // Verify the number of calls
-      expect(prismaService.palette.update).toHaveBeenCalledTimes(2);
+      expect(prismaService.palette.update).toHaveBeenCalledTimes(3);
     });
 
     it('should handle palette not found', async () => {

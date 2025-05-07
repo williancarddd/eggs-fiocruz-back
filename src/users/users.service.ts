@@ -11,10 +11,14 @@ import {
   CheckIfAlreadExistsDto,
   CheckIfAlreadExistsSchema,
 } from 'src/auth/dto/check-if-already-exists.dto';
+import { TenantService } from 'src/tenant/tenant.service';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly tenantService: TenantService,
+  ) {}
 
   async findOne(where: Prisma.UserWhereUniqueInput, include?: any) {
     const user = await this.prisma.user.findFirst({

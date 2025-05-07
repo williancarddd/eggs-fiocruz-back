@@ -1,15 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/common/databases/prisma-module/prisma.service';
 import { Prisma, ProcessStatus } from '@prisma/client';
-import { SupabaseService } from 'src/common/databases/supabase/supabase.service';
 import { createPaginator } from 'prisma-pagination';
+import { StorageService } from 'src/common/databases/storage/storage.service';
 import { ResponsePaletteDto } from './dto/response-palette.dto';
 
 @Injectable()
 export class PaletteService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly supabaseService: SupabaseService,
+    private readonly storageService: StorageService,
   ) {}
 
   async findOne(id: string, include?: Prisma.PaletteInclude) {
@@ -38,7 +38,7 @@ export class PaletteService {
     // Delete from storage if there's a path
     if (palette.path) {
       try {
-        await this.supabaseService.removeFile(palette.path);
+        await this.storageService.removeFile(palette.path);
       } catch (error) {
         // Log error but continue with database deletion
         console.error('Failed to delete file from storage:', error);

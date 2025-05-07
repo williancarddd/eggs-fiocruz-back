@@ -26,8 +26,14 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { ZodResponseInterceptor } from 'src/common/interceptors/zod-response.interceptor';
-import { ResponsePaginatedProcessSchema } from './dto/response-paginated-process.dto';
-import { ResponseProcessSchema } from './dto/response-process.dto';
+import {
+  ResponsePaginatedProcessDto,
+  ResponsePaginatedProcessSchema,
+} from './dto/response-paginated-process.dto';
+import {
+  ResponseProcessDto,
+  ResponseProcessSchema,
+} from './dto/response-process.dto';
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
 
@@ -183,6 +189,7 @@ export class ProcessController {
   @ApiResponse({
     status: 200,
     description: 'List of processes',
+    type: ResponsePaginatedProcessDto,
   })
   @ApiQuery({
     name: 'page',
@@ -221,6 +228,16 @@ export class ProcessController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a process by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Process details',
+    type: ResponseProcessDto,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Process details',
+    type: ResponseProcessDto,
+  })
   @UseInterceptors(new ZodResponseInterceptor(ResponseProcessSchema))
   findOne(@Param('id') id: string) {
     return this.processService.findOne(id, {
