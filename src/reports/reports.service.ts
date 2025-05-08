@@ -20,7 +20,7 @@ export class ReportsService {
       }),
     ]);
 
-    // Média de erro percentual
+    // Paletas com contagem de ovos e esperado
     const palettesWithCounts = await this.prisma.palette.findMany({
       where: {
         expectedEggs: { not: null },
@@ -32,15 +32,50 @@ export class ReportsService {
       },
     });
 
-    const avgErrorPercent =
-      palettesWithCounts.length > 0
-        ? palettesWithCounts.reduce((acc, curr) => {
-            const error =
-              ((curr.eggsCount! - curr.expectedEggs!) / curr.expectedEggs!) *
-              100;
-            return acc + Math.abs(error);
-          }, 0) / palettesWithCounts.length
-        : null;
+    let avgErrorPercent: number | null = null;
+    let stdDevErrorPercent: number | null = null;
+    let rSquared: number | null = null;
+    let highErrorCount: number | null = null;
+
+    if (palettesWithCounts.length > 0) {
+      const errors = palettesWithCounts.map((p) => {
+        const error =
+          ((p.eggsCount! - p.expectedEggs!) / p.expectedEggs!) * 100;
+        return error;
+      });
+
+      // Média do erro percentual (em módulo)
+      avgErrorPercent =
+        errors.reduce((acc, val) => acc + Math.abs(val), 0) / errors.length;
+
+      // Desvio padrão do erro percentual
+      const mean = avgErrorPercent;
+      const variance =
+        errors.reduce((acc, val) => {
+          return acc + Math.pow(Math.abs(val) - mean, 2);
+        }, 0) / errors.length;
+      stdDevErrorPercent = Math.sqrt(variance);
+
+      // Paletas com diferença > 50%
+      highErrorCount = errors.filter((e) => Math.abs(e) > 50).length;
+
+      // R² Calculation
+      const expectedEggs = palettesWithCounts.map((p) => p.expectedEggs!);
+
+      const meanExpected =
+        expectedEggs.reduce((acc, val) => acc + val, 0) / expectedEggs.length;
+
+      const ssTot = expectedEggs.reduce(
+        (acc, val) => acc + Math.pow(val - meanExpected, 2),
+        0,
+      );
+
+      const ssRes = palettesWithCounts.reduce((acc, val) => {
+        return acc + Math.pow(val.expectedEggs! - val.eggsCount!, 2);
+      }, 0);
+
+      rSquared = ssTot > 0 ? 1 - ssRes / ssTot : null;
+    }
 
     // Tempo médio de processamento
     const palettesWithTimestamps = await this.prisma.palette.findMany({
@@ -151,6 +186,9 @@ export class ReportsService {
       },
       errorAnalysis: {
         avgErrorPercent,
+        stdDevErrorPercent,
+        highErrorCount, // 👈 Nova métrica: contagem de erros > 50%
+        rSquared, // 👈 Nova métrica: coeficiente de determinação R²
       },
       performance: {
         avgProcessingTimeMs,

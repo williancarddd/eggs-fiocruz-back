@@ -11,6 +11,9 @@ export const ResponseDashboardSchema = z.object({
   }),
   errorAnalysis: z.object({
     avgErrorPercent: z.number().nullable(),
+    stdDevErrorPercent: z.number().nullable(), // ✅ Novo campo
+    highErrorCount: z.number().nullable(), // ✅ Novo campo
+    rSquared: z.number().nullable(), // ✅ Novo campo
   }),
   performance: z.object({
     avgProcessingTimeMs: z.number().nullable(),
@@ -41,6 +44,7 @@ export const ResponseDashboardSchema = z.object({
     .nullable(),
 });
 
+// Gerando DTO a partir do schema atualizado
 export class ResponseDashboardDto extends createZodDto(
   ResponseDashboardSchema,
 ) {}
