@@ -1,10 +1,16 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
 import { ResponseDashboardDto } from './dto/reponse-dashboard.dto';
 
 @ApiTags('Dashboard')
 @Controller('dashboard')
+@ApiBearerAuth('JWT-auth')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
