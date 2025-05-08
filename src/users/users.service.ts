@@ -12,12 +12,15 @@ import {
   CheckIfAlreadExistsSchema,
 } from 'src/auth/dto/check-if-already-exists.dto';
 import { TenantService } from 'src/tenant/tenant.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NotificationType } from 'src/notification/dto/create-notification.dto';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantService: TenantService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async findOne(where: Prisma.UserWhereUniqueInput, include?: any) {
@@ -79,6 +82,18 @@ export class UserService {
     const user = await this.prisma.user.create({
       data: {
         ...parsed,
+      },
+    });
+
+    this.eventEmitter.emit('notification.created', {
+      subject: 'Bem vindo(a) à Plataforma Mosquito Count',
+      type: NotificationType.EMAIL,
+      recipientEmail: [user.email],
+      template: {
+        id: 'welcome-email',
+        variables: {
+          userName: user.name,
+        },
       },
     });
 

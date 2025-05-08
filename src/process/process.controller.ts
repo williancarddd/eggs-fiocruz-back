@@ -73,16 +73,7 @@ export class ProcessController {
   @ApiResponse({
     status: 201,
     description: 'Process created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', format: 'uuid' },
-        description: { type: 'string', nullable: true },
-        userId: { type: 'string' },
-        createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' },
-      },
-    },
+    type: ResponseProcessDto,
   })
   @ApiResponse({
     status: 400,

@@ -84,6 +84,7 @@ model Palette {
   expectedEggs     Int?
   initialTimestamp DateTime?
   finalTimestamp   DateTime?
+  
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt()

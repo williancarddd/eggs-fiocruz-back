@@ -4,6 +4,10 @@ import { Prisma, ProcessStatus } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { StorageService } from 'src/common/databases/storage/storage.service';
 import { ResponsePaletteDto } from './dto/response-palette.dto';
+import {
+  UpdatePaletteDto,
+  UpdatePaletteSchema,
+} from './dto/update-palette.dto';
 
 @Injectable()
 export class PaletteService {
@@ -53,12 +57,15 @@ export class PaletteService {
     return { message: 'Palette deleted successfully' };
   }
 
-  async update(id: string, data: Prisma.PaletteUpdateInput) {
+  async update(id: string, data: UpdatePaletteDto) {
+    const parsed = UpdatePaletteSchema.parse(data);
     await this.findOne(id);
 
     return this.prisma.palette.update({
       where: { id },
-      data,
+      data: {
+        ...parsed,
+      },
     });
   }
 

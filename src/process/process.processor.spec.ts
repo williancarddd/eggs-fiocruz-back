@@ -148,9 +148,6 @@ describe('ProcessProcessor', () => {
         where: { id: 'palette-id' },
         data: expect.objectContaining({
           status: 'FAILED',
-          metadata: expect.objectContaining({
-            error: expect.stringContaining('not found'),
-          }),
         }),
       });
     });

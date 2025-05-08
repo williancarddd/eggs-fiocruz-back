@@ -1,14 +1,8 @@
 import { createZodDto } from 'nestjs-zod';
-import { z } from 'zod';
-import { ProcessStatus } from '@prisma/client';
+import { PaletteEntitySchema } from '../entities/palette.entity';
 
-export const UpdatePaletteSchema = z
-  .object({
-    status: z.nativeEnum(ProcessStatus).optional(),
-    eggsCount: z.number().optional(),
-    expectedEggs: z.number().optional(),
-    metadata: z.any().optional(),
-  })
-  .strict();
+export const UpdatePaletteSchema = PaletteEntitySchema.pick({
+  expectedEggs: true,
+});
 
 export class UpdatePaletteDto extends createZodDto(UpdatePaletteSchema) {}

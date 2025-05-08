@@ -4,7 +4,8 @@ import { Job } from 'bull';
 import { PrismaService } from 'src/common/databases/prisma-module/prisma.service';
 import axios from 'axios';
 import { StorageService } from 'src/common/databases/storage/storage.service';
-
+import { ProcessStatus } from '@prisma/client';
+import * as FormData from 'form-data';
 @Injectable()
 @Processor('image-processing')
 export class ProcessProcessor {
@@ -20,98 +21,120 @@ export class ProcessProcessor {
     const { paletteId, buffer, filename } = job.data;
 
     try {
-      // Update status to processing
-      await this.prisma.palette.update({
-        where: { id: paletteId },
-        data: { status: 'IN_PROGRESS', initialTimestamp: new Date() },
+      this.logger.log(`🔄 Starting processing for palette ID: ${paletteId}`);
+
+      const palette = await this.updatePaletteStatus(paletteId, 'IN_PROGRESS', {
+        initialTimestamp: new Date(),
       });
 
-      // Upload to storage
-      const palette = await this.prisma.palette.findUnique({
-        where: { id: paletteId },
-        include: { process: true },
-      });
-
-      if (!palette) {
+      if (!palette || !palette.process) {
         throw new NotFoundException(`Palette with ID ${paletteId} not found`);
       }
-      const actualBuffer = Buffer.isBuffer(buffer)
-        ? buffer
-        : Buffer.from(buffer.data);
 
-      const uploadResult = await this.storageService.uploadImage({
-        file: {
-          buffer: actualBuffer,
-          originalname: filename,
-        } as Express.Multer.File,
-        userId: palette.process.userId,
-        processExecutionId: paletteId,
+      const actualBuffer = this.ensureBuffer(buffer);
+
+      const uploadResult = await this.uploadAndProcessAI(
+        palette,
+        actualBuffer,
+        filename,
+        job.data.mimetype,
+      );
+
+      await this.updatePaletteStatus(paletteId, 'COMPLETED', {
+        path: uploadResult.url,
+        eggsCount: uploadResult.eggsCount,
+        finalTimestamp: new Date(),
+        metadata: uploadResult.metadata,
+        width: uploadResult.width,
+        height: uploadResult.height,
       });
 
-      await this.prisma.palette.update({
-        where: { id: paletteId },
-        data: {
-          path: uploadResult.publicUrl,
-        },
-      });
-
-      // Send to AI processing service
-      const aiResponse = await this.processImageWithAI(uploadResult.publicUrl);
-
-      // Update palette with results
-      await this.prisma.palette.update({
-        where: { id: paletteId },
-        data: {
-          path: uploadResult.publicUrl,
-          status: 'COMPLETED',
-          eggsCount: aiResponse.eggsCount,
-          finalTimestamp: new Date(),
-          metadata: aiResponse.metadata,
-          width: aiResponse.width,
-          height: aiResponse.height,
-        },
-      });
+      this.logger.log(`✅ Completed processing for palette ID: ${paletteId}`);
     } catch (error: unknown) {
-      this.logger.error(`Error processing image ${filename}:`, error);
-
-      await this.prisma.palette.update({
-        where: { id: paletteId },
-        data: {
-          status: 'FAILED',
-          finalTimestamp: new Date(),
-          metadata: {
-            error:
-              error instanceof Error
-                ? error.message
-                : 'Unknown error occurred during processing',
-          },
-        },
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`❌ Error processing image ${filename}: ${message}`);
+      await this.updatePaletteStatus(paletteId, 'FAILED', {
+        finalTimestamp: new Date(),
       });
     }
   }
 
-  private async processImageWithAI(imageUrl: string) {
+  private ensureBuffer(data: Buffer | { data: number[] }): Buffer {
+    return Buffer.isBuffer(data) ? data : Buffer.from(data.data);
+  }
+
+  private async uploadAndProcessAI(
+    palette,
+    buffer: Buffer,
+    filename: string,
+    mimetype: string,
+  ) {
+    const { process, id: paletteId } = palette;
+
+    const storageUpload = await this.storageService.uploadImage({
+      file: {
+        buffer,
+        originalname: filename,
+        mimetype,
+      } as Express.Multer.File,
+      userId: process.userId,
+      processExecutionId: paletteId,
+    });
+
+    const aiResult = await this.processImageWithAI(buffer, mimetype);
+
+    return {
+      ...storageUpload,
+      ...aiResult,
+    };
+  }
+
+  private async processImageWithAI(buffer: Buffer, mimetype = 'image/jpeg') {
     try {
-      // Make request to AI service
-      const response = await axios.post(
-        process.env.AI_SERVICE_URL + '/process-image',
-        {
-          imageUrl,
-        },
-      );
+      const formData = new FormData();
+      formData.append('file', buffer, {
+        filename: 'image',
+        contentType: mimetype,
+      });
+
+      const response = await axios.post(process.env.AI_SERVICE_URL!, formData, {
+        headers: formData.getHeaders(),
+      });
+
+      const { data } = response;
 
       return {
-        eggsCount: response.data.eggsCount,
-        metadata: response.data.metadata,
-        width: response.data.width,
-        height: response.data.height,
+        eggsCount: data.totalObjects,
+        metadata: data,
+        width: data?.image?.dimensions?.width ?? null,
+        height: data?.image?.dimensions?.height ?? null,
       };
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error
           ? error.message
-          : 'Unknown error occurred during AI processing';
+          : 'Unknown error during AI processing';
       throw new Error(`AI processing failed: ${errorMessage}`);
     }
+  }
+
+  /**
+   * Generic update method for palette status + extra data.
+   */
+  private async updatePaletteStatus(
+    paletteId: string,
+    status: ProcessStatus,
+    extraData: Record<string, any> = {},
+  ) {
+    await this.prisma.palette.update({
+      where: { id: paletteId },
+      data: { status, ...extraData },
+    });
+
+    // Optionally return the updated palette (with process)
+    return this.prisma.palette.findUnique({
+      where: { id: paletteId },
+      include: { process: true },
+    });
   }
 }

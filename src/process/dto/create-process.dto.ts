@@ -31,7 +31,6 @@ export const CreateProcessSchema = z.object({
       }),
     )
     .max(MAX_IMAGES, `Maximum of ${MAX_IMAGES} files allowed`)
-
     .optional(),
 });
 
