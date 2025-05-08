@@ -76,11 +76,19 @@ export class FileUploadService {
         },
       });
 
-      await this.imageProcessingQueue.add('process-image', {
-        paletteId: palette.id,
-        buffer: image.buffer,
-        filename: image.originalname,
-      });
+      await this.imageProcessingQueue.add(
+        'process-image',
+        {
+          paletteId: palette.id,
+          buffer: image.buffer,
+          filename: image.originalname,
+        },
+        {
+          removeOnComplete: true,
+          removeOnFail: true,
+          delay: 1000,
+        },
+      );
     }
   }
 }
