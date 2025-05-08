@@ -92,8 +92,9 @@ export class ProcessProcessor {
   private async processImageWithAI(buffer: Buffer, mimetype = 'image/jpeg') {
     try {
       const formData = new FormData();
+      const fileName = `image.${mimetype.split('/')[1]}`;
       formData.append('file', buffer, {
-        filename: 'image',
+        filename: fileName,
         contentType: mimetype,
       });
 
