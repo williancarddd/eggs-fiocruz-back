@@ -10,6 +10,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TenantModule } from './tenant/tenant.module';
 import { ProcessModule } from './process/process.module';
 import { PaletteModule } from './palletes/pallete.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { PaletteModule } from './palletes/pallete.module';
     UserModule,
     ProcessModule,
     PaletteModule,
+    ReportsModule,
   ],
   controllers: [],
   providers: [
