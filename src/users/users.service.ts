@@ -45,8 +45,8 @@ export class UserService {
 
   async findAll(query: any) {
     const paginate = createPaginator({
-      page: query.limit,
-      perPage: query.page,
+      page: query.page,
+      perPage: query.limit,
     });
 
     return paginate<ResponseUserDto, Prisma.UserFindManyArgs>(
