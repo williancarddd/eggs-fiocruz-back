@@ -79,8 +79,8 @@ export class PaletteService {
     endDate?: string;
   }) {
     const paginate = createPaginator({
-      page: query.limit,
-      perPage: query.page,
+      page: query.page,
+      perPage: query.limit,
     });
 
     const where: Prisma.PaletteWhereInput = {};
