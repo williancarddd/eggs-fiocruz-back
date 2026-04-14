@@ -97,7 +97,6 @@ export class StorageService {
       folder,
       public_id: publicId,
       timestamp,
-      resource_type: 'image',
       allowed_formats: allowedFormats,
     };
 
@@ -113,7 +112,6 @@ export class StorageService {
       signature,
       folder,
       publicId,
-      resourceType: 'image',
       allowedFormats,
     };
   }

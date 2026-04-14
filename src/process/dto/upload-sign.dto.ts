@@ -17,7 +17,6 @@ export const UploadSignResponseSchema = z.object({
   signature: z.string(),
   folder: z.string(),
   publicId: z.string(),
-  resourceType: z.string(),
   allowedFormats: z.string(),
 });
 
