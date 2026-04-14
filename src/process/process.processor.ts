@@ -3,6 +3,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Job } from 'bull';
 import { PrismaService } from 'src/common/databases/prisma-module/prisma.service';
 import axios from 'axios';
+import { AxiosError } from 'axios';
 import { StorageService } from 'src/common/databases/storage/storage.service';
 import { ProcessStatus } from '@prisma/client';
 import * as FormData from 'form-data';
@@ -10,6 +11,19 @@ import { promises as fs } from 'fs';
 @Injectable()
 @Processor('image-processing')
 export class ProcessProcessor {
+  private getAxiosErrorDetails(error: unknown) {
+    if (error instanceof AxiosError) {
+      return {
+        status: error.response?.status,
+        data: error.response?.data,
+        requestUrl: error.config?.url,
+        method: error.config?.method,
+      };
+    }
+
+    return null;
+  }
+
   private readonly logger = new Logger(ProcessProcessor.name);
 
   constructor(
@@ -117,6 +131,13 @@ export class ProcessProcessor {
 
       return this.buildProcessingResult(data);
     } catch (error: unknown) {
+      const axiosDetails = this.getAxiosErrorDetails(error);
+      if (axiosDetails) {
+        this.logger.error(
+          `AI file request failed status=${axiosDetails.status} method=${axiosDetails.method} url=${axiosDetails.requestUrl} data=${JSON.stringify(axiosDetails.data)}`,
+        );
+      }
+
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -127,6 +148,10 @@ export class ProcessProcessor {
 
   private async processImageWithAIUrl(imageUrl: string) {
     try {
+      this.logger.log(
+        `Sending AI URL request url=${process.env.AI_SERVICE_URL} imageUrl=${imageUrl}`,
+      );
+
       const response = await axios.post(
         process.env.AI_SERVICE_URL!,
         {
@@ -138,9 +163,19 @@ export class ProcessProcessor {
       );
 
       const { data } = response;
+      this.logger.log(
+        `AI URL response received status=${response.status} totalObjects=${data?.totalObjects}`,
+      );
 
       return this.buildProcessingResult(data, imageUrl);
     } catch (error: unknown) {
+      const axiosDetails = this.getAxiosErrorDetails(error);
+      if (axiosDetails) {
+        this.logger.error(
+          `AI URL request failed status=${axiosDetails.status} method=${axiosDetails.method} url=${axiosDetails.requestUrl} data=${JSON.stringify(axiosDetails.data)}`,
+        );
+      }
+
       const errorMessage =
         error instanceof Error
           ? error.message
