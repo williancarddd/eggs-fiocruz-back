@@ -7,6 +7,7 @@ const ACCEPTED_IMAGE_TYPES = [
   'image/jpg',
   'image/png',
   'application/zip',
+  'application/x-zip-compressed',
 ];
 const MAX_IMAGES = 100;
 

@@ -5,6 +5,7 @@ import { ProcessController } from './process.controller';
 import { ProcessProcessor } from './process.processor';
 
 import { FileUploadService } from './services/file-upload.service';
+import { StuckPaletteCleanupService } from './services/stuck-palette-cleanup.service';
 import { TenantModule } from 'src/tenant/tenant.module';
 import { StorageModule } from 'src/common/databases/storage/storage.module';
 
@@ -22,7 +23,12 @@ import { StorageModule } from 'src/common/databases/storage/storage.module';
     }),
   ],
   controllers: [ProcessController],
-  providers: [ProcessService, ProcessProcessor, FileUploadService],
+  providers: [
+    ProcessService,
+    ProcessProcessor,
+    FileUploadService,
+    StuckPaletteCleanupService,
+  ],
   exports: [ProcessService],
 })
 export class ProcessModule {}

@@ -11,10 +11,12 @@ import { TenantModule } from './tenant/tenant.module';
 import { ProcessModule } from './process/process.module';
 import { PaletteModule } from './palletes/pallete.module';
 import { ReportsModule } from './reports/reports.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     PrismaModule,
+    ScheduleModule.forRoot(),
     EventEmitterModule.forRoot({
       delimiter: '.',
       newListener: true,

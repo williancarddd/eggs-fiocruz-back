@@ -3,6 +3,10 @@ import { PrismaService } from 'src/common/databases/prisma-module/prisma.service
 import { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
 import * as AdmZip from 'adm-zip';
+import { promises as fs } from 'fs';
+import { randomUUID } from 'crypto';
+import { extname } from 'path';
+import { tmpdir } from 'os';
 
 @Injectable()
 export class FileUploadService {
@@ -16,7 +20,10 @@ export class FileUploadService {
     const imagesToProcess: Express.Multer.File[] = [];
 
     for (const file of files) {
-      if (file.mimetype === 'application/zip') {
+      if (
+        file.mimetype === 'application/zip' ||
+        file.mimetype === 'application/x-zip-compressed'
+      ) {
         const extractedImages = await this.extractImagesFromZip(file);
         imagesToProcess.push(...extractedImages);
       } else if (file.mimetype.startsWith('image/')) {
@@ -30,6 +37,18 @@ export class FileUploadService {
 
     await this.processImages(processId, imagesToProcess);
     return imagesToProcess;
+  }
+
+  private async persistTempFile(
+    image: Express.Multer.File,
+  ): Promise<{ path: string; mimetype: string }> {
+    const extension = extname(image.originalname) || '.bin';
+    const tempPath = `${tmpdir()}/palette-${randomUUID()}${extension}`;
+    await fs.writeFile(tempPath, image.buffer);
+    return {
+      path: tempPath,
+      mimetype: image.mimetype || 'application/octet-stream',
+    };
   }
 
   private async extractImagesFromZip(
@@ -52,13 +71,29 @@ export class FileUploadService {
 
     return validImages.map((entry) => {
       const buffer = entry.getData();
+      const mappedMimeType = this.getImageMimeType(entry.name);
       return {
         ...file,
         originalname: entry.name,
+        mimetype: mappedMimeType,
         buffer,
         size: buffer.length,
       };
     });
+  }
+
+  private getImageMimeType(filename: string): string {
+    const lowerFilename = filename.toLowerCase();
+
+    if (lowerFilename.endsWith('.png')) {
+      return 'image/png';
+    }
+
+    if (lowerFilename.endsWith('.jpg') || lowerFilename.endsWith('.jpeg')) {
+      return 'image/jpeg';
+    }
+
+    return 'application/octet-stream';
   }
 
   private async processImages(
@@ -75,20 +110,37 @@ export class FileUploadService {
           status: 'PENDING',
         },
       });
-
-      await this.imageProcessingQueue.add(
-        'process-image',
-        {
-          paletteId: palette.id,
-          buffer: image.buffer,
-          filename: image.originalname,
-        },
-        {
-          removeOnComplete: true,
-          removeOnFail: true,
-          delay: 1000,
-        },
-      );
+      try {
+        const persistedFile = await this.persistTempFile(image);
+        await this.imageProcessingQueue.add(
+          'process-image',
+          {
+            paletteId: palette.id,
+            filePath: persistedFile.path,
+            filename: image.originalname,
+            mimetype: persistedFile.mimetype,
+          },
+          {
+            removeOnComplete: true,
+            removeOnFail: true,
+            attempts: 3,
+            backoff: {
+              type: 'exponential',
+              delay: 2000,
+            },
+            timeout: 10 * 60 * 1000,
+            delay: 1000,
+          },
+        );
+      } catch {
+        await this.prisma.palette.update({
+          where: { id: palette.id },
+          data: {
+            status: 'FAILED',
+            finalTimestamp: new Date(),
+          },
+        });
+      }
     }
   }
 }

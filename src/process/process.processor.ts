@@ -6,6 +6,7 @@ import axios from 'axios';
 import { StorageService } from 'src/common/databases/storage/storage.service';
 import { ProcessStatus } from '@prisma/client';
 import * as FormData from 'form-data';
+import { promises as fs } from 'fs';
 @Injectable()
 @Processor('image-processing')
 export class ProcessProcessor {
@@ -18,7 +19,7 @@ export class ProcessProcessor {
 
   @Process('process-image')
   async handleImageProcessing(job: Job) {
-    const { paletteId, buffer, filename } = job.data;
+    const { paletteId, filePath, filename, mimetype } = job.data;
 
     try {
       this.logger.log(`🔄 Starting processing for palette ID: ${paletteId}`);
@@ -31,13 +32,13 @@ export class ProcessProcessor {
         throw new NotFoundException(`Palette with ID ${paletteId} not found`);
       }
 
-      const actualBuffer = this.ensureBuffer(buffer);
+      const actualBuffer = await fs.readFile(filePath);
 
       const uploadResult = await this.uploadAndProcessAI(
         palette,
         actualBuffer,
         filename,
-        job.data.mimetype,
+        mimetype,
       );
 
       await this.updatePaletteStatus(paletteId, 'COMPLETED', {
@@ -56,11 +57,11 @@ export class ProcessProcessor {
       await this.updatePaletteStatus(paletteId, 'FAILED', {
         finalTimestamp: new Date(),
       });
+    } finally {
+      if (filePath) {
+        await fs.unlink(filePath).catch(() => undefined);
+      }
     }
-  }
-
-  private ensureBuffer(data: Buffer | { data: number[] }): Buffer {
-    return Buffer.isBuffer(data) ? data : Buffer.from(data.data);
   }
 
   private async uploadAndProcessAI(
