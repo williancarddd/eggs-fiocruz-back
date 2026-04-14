@@ -11,13 +11,10 @@ export const UploadSignSchema = z.object({
 export class UploadSignDto extends createZodDto(UploadSignSchema) {}
 
 export const UploadSignResponseSchema = z.object({
-  cloudName: z.string(),
-  apiKey: z.string(),
-  timestamp: z.number(),
-  signature: z.string(),
-  folder: z.string(),
-  publicId: z.string(),
-  allowedFormats: z.string(),
+  uploadUrl: z.string().url(),
+  objectKey: z.string(),
+  publicUrl: z.string().url(),
+  contentType: z.string(),
 });
 
 export class UploadSignResponseDto extends createZodDto(

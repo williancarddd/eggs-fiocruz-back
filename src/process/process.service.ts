@@ -164,14 +164,14 @@ export class ProcessService {
     const publicId = `${data.idempotencyKey}.${fileExt}`;
     const folder = `${processEntity.userId}/${processEntity.id}`;
 
-    const signedUpload = this.storageService.createSignedUploadParams({
+    const signedUpload = await this.storageService.createSignedUploadParams({
       folder,
       publicId,
       contentType: data.contentType,
     });
 
     this.logger.log(
-      `Signed upload created for process=${processEntity.id}, publicId=${signedUpload.publicId}`,
+      `Signed upload created for process=${processEntity.id}, objectKey=${signedUpload.objectKey}`,
     );
 
     return signedUpload;
@@ -188,15 +188,14 @@ export class ProcessService {
     }
 
     for (const asset of data.assets) {
-      let assetUrl: URL;
       try {
-        assetUrl = new URL(asset.secureUrl);
+        new URL(asset.secureUrl);
       } catch {
         throw new BadRequestException('Invalid asset URL');
       }
 
-      if (!assetUrl.hostname.endsWith('res.cloudinary.com')) {
-        throw new BadRequestException('Only Cloudinary URLs are allowed');
+      if (!this.storageService.isTrustedObjectUrl(asset.secureUrl)) {
+        throw new BadRequestException('Only trusted S3 URLs are allowed');
       }
     }
 

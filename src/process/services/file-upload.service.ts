@@ -79,7 +79,7 @@ export class FileUploadService {
           filename: asset.originalFilename,
           format: asset.format,
           path: asset.secureUrl,
-          sourceProvider: 'CLOUDINARY',
+          sourceProvider: 'S3',
           sourcePublicId: asset.publicId,
           sourceUrl: asset.secureUrl,
           sourceBytes: asset.bytes,

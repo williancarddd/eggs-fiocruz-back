@@ -17,19 +17,19 @@ export class CloudUploadObservabilityService {
     const [pending, inProgress, failed, completed] = await Promise.all([
       this.prisma.palette.count({
         where: {
-          sourceProvider: 'CLOUDINARY',
+          sourceProvider: 'S3',
           status: 'PENDING',
         },
       }),
       this.prisma.palette.count({
         where: {
-          sourceProvider: 'CLOUDINARY',
+          sourceProvider: 'S3',
           status: 'IN_PROGRESS',
         },
       }),
       this.prisma.palette.count({
         where: {
-          sourceProvider: 'CLOUDINARY',
+          sourceProvider: 'S3',
           status: 'FAILED',
           createdAt: {
             gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
@@ -38,7 +38,7 @@ export class CloudUploadObservabilityService {
       }),
       this.prisma.palette.count({
         where: {
-          sourceProvider: 'CLOUDINARY',
+          sourceProvider: 'S3',
           status: 'COMPLETED',
           createdAt: {
             gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
