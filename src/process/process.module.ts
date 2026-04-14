@@ -6,6 +6,7 @@ import { ProcessProcessor } from './process.processor';
 
 import { FileUploadService } from './services/file-upload.service';
 import { StuckPaletteCleanupService } from './services/stuck-palette-cleanup.service';
+import { CloudUploadObservabilityService } from './services/cloud-upload-observability.service';
 import { TenantModule } from 'src/tenant/tenant.module';
 import { StorageModule } from 'src/common/databases/storage/storage.module';
 
@@ -28,6 +29,7 @@ import { StorageModule } from 'src/common/databases/storage/storage.module';
     ProcessProcessor,
     FileUploadService,
     StuckPaletteCleanupService,
+    CloudUploadObservabilityService,
   ],
   exports: [ProcessService],
 })

@@ -75,6 +75,13 @@ model Palette {
   filename  String
   format    String
   path      String
+  sourceProvider  String?
+  sourcePublicId  String?
+  sourceAssetId   String?
+  sourceUrl       String?
+  sourceBytes     Int?
+  idempotencyKey  String?
+  uploadCompletedAt DateTime?
   width     Int?
   height    Int?
   metadata  Json?
@@ -90,6 +97,9 @@ model Palette {
   updatedAt DateTime @updatedAt()
 
   process Process @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@unique([processId, sourcePublicId])
+  @@unique([processId, idempotencyKey])
 }
 
 model Location {

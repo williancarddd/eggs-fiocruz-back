@@ -17,9 +17,19 @@ export class ProcessProcessor {
     private readonly storageService: StorageService,
   ) {}
 
+  private buildProcessingResult(data: any, url?: string) {
+    return {
+      url,
+      eggsCount: data.totalObjects,
+      metadata: data,
+      width: data?.image?.dimensions?.width ?? null,
+      height: data?.image?.dimensions?.height ?? null,
+    };
+  }
+
   @Process('process-image')
   async handleImageProcessing(job: Job) {
-    const { paletteId, filePath, filename, mimetype } = job.data;
+    const { paletteId, filePath, filename, mimetype, secureUrl } = job.data;
 
     try {
       this.logger.log(`🔄 Starting processing for palette ID: ${paletteId}`);
@@ -32,17 +42,17 @@ export class ProcessProcessor {
         throw new NotFoundException(`Palette with ID ${paletteId} not found`);
       }
 
-      const actualBuffer = await fs.readFile(filePath);
-
-      const uploadResult = await this.uploadAndProcessAI(
-        palette,
-        actualBuffer,
-        filename,
-        mimetype,
-      );
+      const uploadResult = secureUrl
+        ? await this.processImageWithAIUrl(secureUrl)
+        : await this.uploadAndProcessAI(
+            palette,
+            await fs.readFile(filePath),
+            filename,
+            mimetype,
+          );
 
       await this.updatePaletteStatus(paletteId, 'COMPLETED', {
-        path: uploadResult.url,
+        path: secureUrl || uploadResult.url || '',
         eggsCount: uploadResult.eggsCount,
         finalTimestamp: new Date(),
         metadata: uploadResult.metadata,
@@ -105,18 +115,37 @@ export class ProcessProcessor {
 
       const { data } = response;
 
-      return {
-        eggsCount: data.totalObjects,
-        metadata: data,
-        width: data?.image?.dimensions?.width ?? null,
-        height: data?.image?.dimensions?.height ?? null,
-      };
+      return this.buildProcessingResult(data);
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error
           ? error.message
           : 'Unknown error during AI processing';
       throw new Error(`AI processing failed: ${errorMessage}`);
+    }
+  }
+
+  private async processImageWithAIUrl(imageUrl: string) {
+    try {
+      const response = await axios.post(
+        process.env.AI_SERVICE_URL!,
+        {
+          imageUrl,
+        },
+        {
+          timeout: 120000,
+        },
+      );
+
+      const { data } = response;
+
+      return this.buildProcessingResult(data, imageUrl);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Unknown error during AI URL processing';
+      throw new Error(`AI URL processing failed: ${errorMessage}`);
     }
   }
 

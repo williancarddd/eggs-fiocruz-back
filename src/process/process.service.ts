@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/common/databases/prisma-module/prisma.service';
@@ -12,13 +13,19 @@ import { FileUploadService } from './services/file-upload.service';
 import { Readable } from 'stream';
 import { ResponseProcessDto } from './dto/response-process.dto';
 import { createPaginator } from 'prisma-pagination';
+import { UploadSignDto } from './dto/upload-sign.dto';
+import { StorageService } from 'src/common/databases/storage/storage.service';
+import { AddUploadedAssetsDto } from './dto/add-uploaded-assets.dto';
 
 @Injectable()
 export class ProcessService {
+  private readonly logger = new Logger(ProcessService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private tenantService: TenantService,
     private fileUploadService: FileUploadService,
+    private storageService: StorageService,
   ) {}
 
   async findAll(query: any) {
@@ -134,8 +141,81 @@ export class ProcessService {
   }
 
   async addImages(id: string, files: Express.Multer.File[]) {
-    const process = await this.findOne(id);
-    await this.fileUploadService.handleFileUploads(process.id, files);
-    return process;
+    const processEntity = await this.findOne(id);
+    await this.fileUploadService.handleFileUploads(processEntity.id, files);
+    return processEntity;
+  }
+
+  async signUpload(data: UploadSignDto) {
+    if (process.env.DIRECT_CLOUD_UPLOAD_ENABLED === 'false') {
+      throw new BadRequestException('Direct cloud upload is disabled');
+    }
+
+    if (!data.contentType.startsWith('image/')) {
+      throw new BadRequestException('Only image uploads are supported');
+    }
+
+    const processEntity = await this.findOne(data.processId);
+    if (processEntity.userId !== this.tenantService.userId) {
+      throw new NotFoundException('Process not found');
+    }
+
+    const fileExt = data.filename.split('.').pop() || 'jpg';
+    const publicId = `${data.idempotencyKey}.${fileExt}`;
+    const folder = `${processEntity.userId}/${processEntity.id}`;
+
+    const signedUpload = this.storageService.createSignedUploadParams({
+      folder,
+      publicId,
+      contentType: data.contentType,
+    });
+
+    this.logger.log(
+      `Signed upload created for process=${processEntity.id}, publicId=${signedUpload.publicId}`,
+    );
+
+    return signedUpload;
+  }
+
+  async addUploadedAssets(id: string, data: AddUploadedAssetsDto) {
+    if (process.env.DIRECT_CLOUD_UPLOAD_ENABLED === 'false') {
+      throw new BadRequestException('Direct cloud upload is disabled');
+    }
+
+    const processEntity = await this.findOne(id);
+    if (processEntity.userId !== this.tenantService.userId) {
+      throw new NotFoundException('Process not found');
+    }
+
+    for (const asset of data.assets) {
+      let assetUrl: URL;
+      try {
+        assetUrl = new URL(asset.secureUrl);
+      } catch {
+        throw new BadRequestException('Invalid asset URL');
+      }
+
+      if (!assetUrl.hostname.endsWith('res.cloudinary.com')) {
+        throw new BadRequestException('Only Cloudinary URLs are allowed');
+      }
+    }
+
+    const palettes = await this.fileUploadService.handleUploadedCloudAssets(
+      processEntity.id,
+      data.assets,
+    );
+
+    this.logger.log(
+      `Registered ${palettes.length} cloud assets for process=${processEntity.id}`,
+    );
+
+    return {
+      accepted: palettes.length,
+      palettes: palettes.map((palette) => ({
+        id: palette.id,
+        sourcePublicId: palette.sourcePublicId,
+        status: palette.status,
+      })),
+    };
   }
 }

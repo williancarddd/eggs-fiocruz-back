@@ -34,6 +34,17 @@ import {
   ResponseProcessDto,
   ResponseProcessSchema,
 } from './dto/response-process.dto';
+import {
+  AddUploadedAssetDto,
+  AddUploadedAssetsDto,
+  AddUploadedAssetsResponseDto,
+  AddUploadedAssetsResponseSchema,
+} from './dto/add-uploaded-assets.dto';
+import {
+  UploadSignDto,
+  UploadSignResponseDto,
+  UploadSignResponseSchema,
+} from './dto/upload-sign.dto';
 
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
 
@@ -112,6 +123,23 @@ export class ProcessController {
     });
   }
 
+  @Post('uploads/sign')
+  @ApiOperation({
+    summary: 'Create signed Cloudinary upload params',
+  })
+  @ApiBody({
+    type: UploadSignDto,
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Signed upload params created',
+    type: UploadSignResponseDto,
+  })
+  @UseInterceptors(new ZodResponseInterceptor(UploadSignResponseSchema))
+  async signUpload(@Body() body: UploadSignDto) {
+    return this.processService.signUpload(body);
+  }
+
   @Post(':id/images')
   @ApiOperation({
     summary: 'Add images to an existing process',
@@ -173,6 +201,45 @@ export class ProcessController {
     files: Express.Multer.File[],
   ) {
     return this.processService.addImages(id, files);
+  }
+
+  @Post(':id/assets')
+  @ApiOperation({
+    summary: 'Register one uploaded cloud asset',
+  })
+  @ApiBody({
+    type: AddUploadedAssetDto,
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Uploaded asset registered successfully',
+    type: AddUploadedAssetsResponseDto,
+  })
+  @UseInterceptors(new ZodResponseInterceptor(AddUploadedAssetsResponseSchema))
+  async addAsset(@Param('id') id: string, @Body() body: AddUploadedAssetDto) {
+    return this.processService.addUploadedAssets(id, {
+      assets: [body],
+    });
+  }
+
+  @Post(':id/assets/batch')
+  @ApiOperation({
+    summary: 'Register uploaded cloud assets batch',
+  })
+  @ApiBody({
+    type: AddUploadedAssetsDto,
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Uploaded assets registered successfully',
+    type: AddUploadedAssetsResponseDto,
+  })
+  @UseInterceptors(new ZodResponseInterceptor(AddUploadedAssetsResponseSchema))
+  async addAssetsBatch(
+    @Param('id') id: string,
+    @Body() body: AddUploadedAssetsDto,
+  ) {
+    return this.processService.addUploadedAssets(id, body);
   }
 
   @Get()

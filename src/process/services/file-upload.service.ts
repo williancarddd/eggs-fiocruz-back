@@ -7,6 +7,18 @@ import { promises as fs } from 'fs';
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
 import { tmpdir } from 'os';
+import { Palette } from '@prisma/client';
+
+type UploadedCloudAsset = {
+  publicId: string;
+  secureUrl: string;
+  bytes: number;
+  format: string;
+  width?: number | null;
+  height?: number | null;
+  originalFilename: string;
+  idempotencyKey: string;
+};
 
 @Injectable()
 export class FileUploadService {
@@ -37,6 +49,87 @@ export class FileUploadService {
 
     await this.processImages(processId, imagesToProcess);
     return imagesToProcess;
+  }
+
+  async handleUploadedCloudAssets(
+    processId: string,
+    assets: UploadedCloudAsset[],
+  ) {
+    const palettes: Palette[] = [];
+
+    for (const asset of assets) {
+      const existingPalette = await this.prisma.palette.findFirst({
+        where: {
+          processId,
+          OR: [
+            { sourcePublicId: asset.publicId },
+            { idempotencyKey: asset.idempotencyKey },
+          ],
+        },
+      });
+
+      if (existingPalette) {
+        palettes.push(existingPalette);
+        continue;
+      }
+
+      const palette = await this.prisma.palette.create({
+        data: {
+          processId,
+          filename: asset.originalFilename,
+          format: asset.format,
+          path: asset.secureUrl,
+          sourceProvider: 'CLOUDINARY',
+          sourcePublicId: asset.publicId,
+          sourceUrl: asset.secureUrl,
+          sourceBytes: asset.bytes,
+          idempotencyKey: asset.idempotencyKey,
+          uploadCompletedAt: new Date(),
+          width: asset.width ?? null,
+          height: asset.height ?? null,
+          status: 'PENDING',
+        },
+      });
+
+      try {
+        await this.imageProcessingQueue.add(
+          'process-image',
+          {
+            paletteId: palette.id,
+            secureUrl: asset.secureUrl,
+            publicId: asset.publicId,
+            mimetype: `image/${asset.format}`,
+            filename: asset.originalFilename,
+          },
+          {
+            removeOnComplete: true,
+            removeOnFail: true,
+            attempts: 3,
+            backoff: {
+              type: 'exponential',
+              delay: 2000,
+            },
+            timeout: 10 * 60 * 1000,
+            delay: 1000,
+          },
+        );
+        palettes.push(palette);
+      } catch {
+        const failedPalette = await this.prisma.palette.update({
+          where: { id: palette.id },
+          data: {
+            status: 'FAILED',
+            finalTimestamp: new Date(),
+            metadata: {
+              failureReason: 'QUEUE_ENQUEUE_ERROR',
+            },
+          },
+        });
+        palettes.push(failedPalette);
+      }
+    }
+
+    return palettes;
   }
 
   private async persistTempFile(

@@ -9,12 +9,21 @@ import {
 @Injectable()
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
+  private readonly cloudName: string;
+  private readonly apiKey: string;
+  private readonly apiSecret: string;
 
   constructor(private readonly configService: ConfigService) {
+    this.cloudName =
+      this.configService.get<string>('CLOUDINARY_CLOUD_NAME') || '';
+    this.apiKey = this.configService.get<string>('CLOUDINARY_API_KEY') || '';
+    this.apiSecret =
+      this.configService.get<string>('CLOUDINARY_API_SECRET') || '';
+
     cloudinary.config({
-      cloud_name: this.configService.get<string>('CLOUDINARY_CLOUD_NAME'),
-      api_key: this.configService.get<string>('CLOUDINARY_API_KEY'),
-      api_secret: this.configService.get<string>('CLOUDINARY_API_SECRET'),
+      cloud_name: this.cloudName,
+      api_key: this.apiKey,
+      api_secret: this.apiSecret,
     });
 
     this.logger.log('Cloudinary client initialized successfully');
@@ -71,6 +80,54 @@ export class StorageService {
       );
       throw error;
     }
+  }
+
+  createSignedUploadParams({
+    folder,
+    publicId,
+    contentType,
+  }: {
+    folder: string;
+    publicId: string;
+    contentType: string;
+  }) {
+    const timestamp = Math.floor(Date.now() / 1000);
+    const allowedFormats = this.getAllowedFormatsByMime(contentType).join(',');
+    const paramsToSign = {
+      folder,
+      public_id: publicId,
+      timestamp,
+      resource_type: 'image',
+      allowed_formats: allowedFormats,
+    };
+
+    const signature = cloudinary.utils.api_sign_request(
+      paramsToSign,
+      this.apiSecret,
+    );
+
+    return {
+      cloudName: this.cloudName,
+      apiKey: this.apiKey,
+      timestamp,
+      signature,
+      folder,
+      publicId,
+      resourceType: 'image',
+      allowedFormats,
+    };
+  }
+
+  private getAllowedFormatsByMime(contentType: string): string[] {
+    if (contentType === 'image/png') {
+      return ['png'];
+    }
+
+    if (contentType === 'image/jpeg' || contentType === 'image/jpg') {
+      return ['jpg', 'jpeg'];
+    }
+
+    return ['jpg', 'jpeg', 'png'];
   }
 
   async downloadImage(publicId: string): Promise<string> {
