@@ -4,16 +4,24 @@ import { Prisma, ProcessStatus } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
 import { StorageService } from 'src/common/databases/storage/storage.service';
 import { ResponsePaletteDto } from './dto/response-palette.dto';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import {
   UpdatePaletteDto,
   UpdatePaletteSchema,
 } from './dto/update-palette.dto';
+import {
+  ReprocessPaletteDto,
+  ReprocessPaletteSchema,
+} from './dto/reprocess-palette.dto';
 
 @Injectable()
 export class PaletteService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
+    @InjectQueue('image-processing')
+    private readonly imageProcessingQueue: Queue,
   ) {}
 
   async findOne(id: string, include?: Prisma.PaletteInclude) {
@@ -67,6 +75,54 @@ export class PaletteService {
         ...parsed,
       },
     });
+  }
+
+  async reprocess(id: string, data: ReprocessPaletteDto) {
+    const parsed = ReprocessPaletteSchema.parse(data);
+    const palette = await this.findOne(id);
+
+    if (!palette.path) {
+      throw new NotFoundException(
+        'Palette source image not found for reprocessing',
+      );
+    }
+
+    const updatedPalette = await this.prisma.palette.update({
+      where: { id },
+      data: {
+        status: 'PENDING',
+        eggsCount: null,
+        metadata: Prisma.JsonNull,
+        initialTimestamp: null,
+        finalTimestamp: null,
+      },
+    });
+
+    await this.imageProcessingQueue.add(
+      'process-image',
+      {
+        paletteId: updatedPalette.id,
+        secureUrl: updatedPalette.path,
+        filename: updatedPalette.filename,
+        mimetype: updatedPalette.format?.startsWith('image/')
+          ? updatedPalette.format
+          : `image/${updatedPalette.format || 'jpeg'}`,
+        squareSize: parsed.squareSize,
+      },
+      {
+        removeOnComplete: true,
+        removeOnFail: true,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+        timeout: 10 * 60 * 1000,
+        delay: 1000,
+      },
+    );
+
+    return updatedPalette;
   }
 
   async findAll(query: {

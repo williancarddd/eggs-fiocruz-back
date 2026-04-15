@@ -7,6 +7,7 @@ import {
   UseInterceptors,
   Patch,
   Body,
+  Post,
 } from '@nestjs/common';
 import { PaletteService } from './palette.service';
 import {
@@ -25,6 +26,7 @@ import {
   ResponsePaletteSchema,
 } from './dto/response-palette.dto';
 import { UpdatePaletteDto } from './dto/update-palette.dto';
+import { ReprocessPaletteDto } from './dto/reprocess-palette.dto';
 
 @ApiTags('Palettes')
 @Controller('palettes')
@@ -114,5 +116,20 @@ export class PaletteController {
   })
   remove(@Param('id') id: string) {
     return this.paletteService.delete(id);
+  }
+
+  @Post(':id/reprocess')
+  @ApiOperation({ summary: 'Reprocess a palette' })
+  @ApiResponse({
+    status: 200,
+    description: 'Palette queued for reprocessing',
+    type: ResponsePaletteDto,
+  })
+  @UseInterceptors(new ZodResponseInterceptor(ResponsePaletteSchema))
+  reprocess(
+    @Param('id') id: string,
+    @Body() reprocessPaletteDto: ReprocessPaletteDto,
+  ) {
+    return this.paletteService.reprocess(id, reprocessPaletteDto);
   }
 }

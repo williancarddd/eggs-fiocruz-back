@@ -47,7 +47,8 @@ export class ProcessProcessor {
 
   @Process('process-image')
   async handleImageProcessing(job: Job) {
-    const { paletteId, filePath, filename, mimetype, secureUrl } = job.data;
+    const { paletteId, filePath, filename, mimetype, secureUrl, squareSize } =
+      job.data;
 
     try {
       this.logger.log(`🔄 Starting processing for palette ID: ${paletteId}`);
@@ -61,12 +62,13 @@ export class ProcessProcessor {
       }
 
       const uploadResult = secureUrl
-        ? await this.processImageWithAIUrl(secureUrl)
+        ? await this.processImageWithAIUrl(secureUrl, squareSize)
         : await this.uploadAndProcessAI(
             palette,
             await fs.readFile(filePath),
             filename,
             mimetype,
+            squareSize,
           );
 
       await this.updatePaletteStatus(paletteId, 'COMPLETED', {
@@ -97,6 +99,7 @@ export class ProcessProcessor {
     buffer: Buffer,
     filename: string,
     mimetype: string,
+    squareSize?: number,
   ) {
     const { process, id: paletteId } = palette;
 
@@ -110,7 +113,7 @@ export class ProcessProcessor {
       processExecutionId: paletteId,
     });
 
-    const aiResult = await this.processImageWithAI(buffer, mimetype);
+    const aiResult = await this.processImageWithAI(buffer, mimetype, squareSize);
 
     return {
       ...storageUpload,
@@ -118,7 +121,11 @@ export class ProcessProcessor {
     };
   }
 
-  private async processImageWithAI(buffer: Buffer, mimetype = 'image/jpeg') {
+  private async processImageWithAI(
+    buffer: Buffer,
+    mimetype = 'image/jpeg',
+    squareSize?: number,
+  ) {
     try {
       const formData = new FormData();
       const fileName = `image.${mimetype.split('/')[1]}`;
@@ -130,6 +137,7 @@ export class ProcessProcessor {
       const response = await axios.post(process.env.AI_SERVICE_URL!, formData, {
         headers: formData.getHeaders(),
         timeout: this.aiRequestTimeoutMs,
+        ...(squareSize ? { params: { square_size: squareSize } } : {}),
       });
 
       const { data } = response;
@@ -151,10 +159,10 @@ export class ProcessProcessor {
     }
   }
 
-  private async processImageWithAIUrl(imageUrl: string) {
+  private async processImageWithAIUrl(imageUrl: string, squareSize?: number) {
     try {
       this.logger.log(
-        `Sending AI URL request url=${process.env.AI_SERVICE_URL} imageUrl=${imageUrl}`,
+        `Sending AI URL request url=${process.env.AI_SERVICE_URL} imageUrl=${imageUrl} squareSize=${squareSize ?? 'default'}`,
       );
 
       const response = await axios.post(
@@ -164,6 +172,7 @@ export class ProcessProcessor {
         },
         {
           timeout: this.aiRequestTimeoutMs,
+          ...(squareSize ? { params: { square_size: squareSize } } : {}),
         },
       );
 

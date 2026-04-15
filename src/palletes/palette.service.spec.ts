@@ -3,6 +3,7 @@ import { PaletteService } from './palette.service';
 import { PrismaService } from '../common/databases/prisma-module/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 import { StorageService } from 'src/common/databases/storage/storage.service';
+import { getQueueToken } from '@nestjs/bull';
 
 describe('PaletteService', () => {
   let service: PaletteService;
@@ -46,6 +47,12 @@ describe('PaletteService', () => {
           provide: StorageService,
           useValue: {
             removeFile: jest.fn().mockResolvedValue(true),
+          },
+        },
+        {
+          provide: getQueueToken('image-processing'),
+          useValue: {
+            add: jest.fn().mockResolvedValue({}),
           },
         },
       ],
@@ -124,7 +131,7 @@ describe('PaletteService', () => {
 
   describe('update', () => {
     it('should update a palette', async () => {
-      const updateData = { eggsCount: 15 };
+      const updateData = { expectedEggs: 15 };
       const result = await service.update('palette-id', updateData);
       expect(result).toEqual(mockPalette);
       expect(prismaService.palette.update).toHaveBeenCalledWith({
@@ -138,7 +145,7 @@ describe('PaletteService', () => {
         .spyOn(prismaService.palette, 'findFirst')
         .mockResolvedValueOnce(null);
       await expect(
-        service.update('non-existent-id', { eggsCount: 15 }),
+        service.update('non-existent-id', { expectedEggs: 15 }),
       ).rejects.toThrow(NotFoundException);
     });
   });
