@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/common/databases/prisma-module/prisma.service';
 import { Prisma, ProcessStatus } from '@prisma/client';
 import { createPaginator } from 'prisma-pagination';
@@ -80,6 +80,12 @@ export class PaletteService {
   async reprocess(id: string, data: ReprocessPaletteDto) {
     const parsed = ReprocessPaletteSchema.parse(data);
     const palette = await this.findOne(id);
+
+    if (palette.status === 'PENDING' || palette.status === 'IN_PROGRESS') {
+      throw new BadRequestException(
+        'Palette is already being processed and cannot be reprocessed now',
+      );
+    }
 
     if (!palette.path) {
       throw new NotFoundException(
