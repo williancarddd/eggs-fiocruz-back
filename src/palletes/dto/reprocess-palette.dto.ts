@@ -1,14 +1,34 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-export const AllowedSquareSizeSchema = z.union([
-  z.literal(128),
-  z.literal(254),
-  z.literal(384),
-  z.literal(512),
-  z.literal(784),
-  z.literal(1024),
-]);
+export const ALLOWED_SQUARE_SIZES = [
+  96,
+  128,
+  160,
+  192,
+  224,
+  254,
+  320,
+  384,
+  448,
+  512,
+  640,
+  784,
+  896,
+  1024,
+  1280,
+  1684,
+  2048,
+] as const;
+
+type AllowedSquareSize = (typeof ALLOWED_SQUARE_SIZES)[number];
+
+export const AllowedSquareSizeSchema = z
+  .number()
+  .int()
+  .refine((value) => ALLOWED_SQUARE_SIZES.includes(value as AllowedSquareSize), {
+    message: `squareSize must be one of: ${ALLOWED_SQUARE_SIZES.join(', ')}`,
+  });
 
 export const ReprocessPaletteSchema = z.object({
   squareSize: AllowedSquareSizeSchema.optional(),
