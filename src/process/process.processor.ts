@@ -11,6 +11,10 @@ import { promises as fs } from 'fs';
 @Injectable()
 @Processor('image-processing')
 export class ProcessProcessor {
+  private readonly aiRequestTimeoutMs = Number(
+    process.env.AI_SERVICE_TIMEOUT_MS ?? 480000,
+  );
+
   private getAxiosErrorDetails(error: unknown) {
     if (error instanceof AxiosError) {
       return {
@@ -125,6 +129,7 @@ export class ProcessProcessor {
 
       const response = await axios.post(process.env.AI_SERVICE_URL!, formData, {
         headers: formData.getHeaders(),
+        timeout: this.aiRequestTimeoutMs,
       });
 
       const { data } = response;
@@ -158,7 +163,7 @@ export class ProcessProcessor {
           imageUrl,
         },
         {
-          timeout: 120000,
+          timeout: this.aiRequestTimeoutMs,
         },
       );
 
